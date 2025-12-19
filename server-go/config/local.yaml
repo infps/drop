@@ -1,0 +1,4 @@
+env: "dev"
+db: "postgresql://postgres:postgres@localhost:5432/mydb?schema=public"
+http:
+  address: "localhost:8080"
