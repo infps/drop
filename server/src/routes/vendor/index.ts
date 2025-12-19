@@ -391,7 +391,7 @@ app.get('/earnings', async (c) => {
       };
     }
 
-    const [orders, total, summary] = await Promise.all([
+    const results = await Promise.all([
       prisma.order.findMany({
         where,
         orderBy: { deliveredAt: 'desc' },
@@ -421,6 +421,9 @@ app.get('/earnings', async (c) => {
         _count: true,
       }),
     ]);
+    const orders = results[0] as any;
+    const total = results[1] as any;
+    const summary = results[2] as any;
 
     // Calculate vendor earnings (subtotal - platform fee)
     const grossRevenue = summary._sum.subtotal || 0;
@@ -429,8 +432,8 @@ app.get('/earnings', async (c) => {
 
     return paginatedResponse(
       c,
-      {
-        orders,
+      orders.map((order: any) => ({
+        ...order,
         summary: {
           grossRevenue,
           platformFees,
@@ -441,7 +444,7 @@ app.get('/earnings', async (c) => {
           totalOrders: vendor.totalOrders,
           rating: vendor.rating,
         },
-      },
+      })),
       page,
       limit,
       total

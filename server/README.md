@@ -173,25 +173,26 @@ bun run lint             # Type check with TypeScript
 ## API Endpoints
 
 ### Base URL
+
 `http://localhost:3001/api/v1`
 
 ### Route Groups
 
-| Group | Prefix | Description |
-|-------|--------|-------------|
-| Authentication | `/auth` | Login, OTP, logout |
-| Orders | `/orders` | Order management |
-| Users | `/user` | User profile & addresses |
-| Riders | `/rider` | Rider operations |
-| Vendors | `/vendor` | Vendor management |
-| Products | `/products` | Product catalog |
-| Cart | `/cart` | Shopping cart |
-| Payments | `/payments` | Payment processing |
-| Wallet | `/wallet` | Wallet operations |
-| Admin | `/admin` | Admin dashboard |
-| Upload | `/upload` | File uploads |
-| Search | `/search` | Search functionality |
-| Notifications | `/notifications` | User notifications |
+| Group          | Prefix           | Description              |
+| -------------- | ---------------- | ------------------------ |
+| Authentication | `/auth`          | Login, OTP, logout       |
+| Orders         | `/orders`        | Order management         |
+| Users          | `/user`          | User profile & addresses |
+| Riders         | `/rider`         | Rider operations         |
+| Vendors        | `/vendor`        | Vendor management        |
+| Products       | `/products`      | Product catalog          |
+| Cart           | `/cart`          | Shopping cart            |
+| Payments       | `/payments`      | Payment processing       |
+| Wallet         | `/wallet`        | Wallet operations        |
+| Admin          | `/admin`         | Admin dashboard          |
+| Upload         | `/upload`        | File uploads             |
+| Search         | `/search`        | Search functionality     |
+| Notifications  | `/notifications` | User notifications       |
 
 For detailed API documentation, see [API_ROUTES.md](./API_ROUTES.md)
 
@@ -238,6 +239,7 @@ For complete schema, see [prisma/schema.prisma](./prisma/schema.prisma)
 ## Key Features
 
 ### 1. Admin Dashboard
+
 - Real-time statistics
 - User/rider/vendor management
 - Order monitoring
@@ -245,12 +247,14 @@ For complete schema, see [prisma/schema.prisma](./prisma/schema.prisma)
 - Zone management
 
 ### 2. Payment Integration
+
 - Razorpay integration
 - Payment verification
 - Webhook support
 - Refund processing
 
 ### 3. Wallet System
+
 - Add money to wallet
 - Deduct for orders
 - Cashback rewards
@@ -258,12 +262,14 @@ For complete schema, see [prisma/schema.prisma](./prisma/schema.prisma)
 - Refund to wallet
 
 ### 4. File Upload
+
 - Single/multiple file upload
 - Image optimization ready
 - Cloud storage integration ready
 - Secure file handling
 
 ### 5. Real-time Features (Coming Soon)
+
 - Order tracking
 - Rider location updates
 - Live notifications
@@ -272,24 +278,31 @@ For complete schema, see [prisma/schema.prisma](./prisma/schema.prisma)
 ## Performance Considerations
 
 ### Pagination
+
 All list endpoints support pagination:
+
 ```javascript
 GET /api/v1/orders?page=1&limit=20
 ```
 
 ### Caching
+
 Implement caching for frequently accessed data:
+
 - Vendor lists
 - Product catalogs
 - Static content
 
 ### Database Optimization
+
 - Indexed queries
 - Efficient joins
 - Query optimization with Prisma
 
 ### Rate Limiting
+
 Recommended limits:
+
 - Auth endpoints: 5 req/min
 - General endpoints: 100 req/min
 - Upload endpoints: 10 req/min
@@ -310,26 +323,28 @@ All endpoints return consistent error format:
 ## Integration
 
 ### React Native
+
 ```javascript
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api/v1',
+  baseURL: "http://localhost:3001/api/v1",
   headers: {
-    'Authorization': `Bearer ${token}`
-  }
+    Authorization: `Bearer ${token}`,
+  },
 });
 
-const orders = await api.get('/orders');
+const orders = await api.get("/orders");
 ```
 
 ### React Web
+
 ```javascript
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 
 const { data } = useQuery({
-  queryKey: ['orders'],
-  queryFn: () => api.get('/orders')
+  queryKey: ["orders"],
+  queryFn: () => api.get("/orders"),
 });
 ```
 
@@ -371,6 +386,7 @@ sudo systemctl start drop-api
 ```
 
 ### Environment
+
 - Use production database
 - Set `NODE_ENV=production`
 - Use secure `JWT_SECRET`
@@ -381,6 +397,7 @@ sudo systemctl start drop-api
 ## Monitoring
 
 Recommended tools:
+
 - **Sentry**: Error tracking
 - **DataDog**: APM monitoring
 - **PM2**: Process management
@@ -411,6 +428,7 @@ MIT License - see LICENSE file
 ## Support
 
 For issues and questions:
+
 - GitHub Issues
 - Email: support@drop.com
 - Documentation: [API_ROUTES.md](./API_ROUTES.md)
@@ -429,3 +447,10 @@ For issues and questions:
 ---
 
 Built with ❤️ using [Bun](https://bun.sh) and [Hono](https://hono.dev)
+
+---
+
+admin creds
+
+admin@example.com
+password123
