@@ -1,30 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   StyleSheet,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../hooks/use-auth';
-import { Colors } from '../../constants/theme';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useAuth } from "../../hooks/use-auth";
+import { Colors } from "../../constants/theme";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { sendOtp, isLoading, error } = useAuth();
 
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState("");
   const [isValid, setIsValid] = useState(false);
 
   const handlePhoneChange = (text: string) => {
-    // Remove non-digits
-    const cleaned = text.replace(/\D/g, '');
+    const cleaned = text.replace(/\D/g, "");
 
-    // Only allow 10 digits
     if (cleaned.length <= 10) {
       setPhone(cleaned);
       setIsValid(cleaned.length === 10);
@@ -33,7 +31,10 @@ export default function LoginScreen() {
 
   const handleContinue = async () => {
     if (!isValid) {
-      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number');
+      Alert.alert(
+        "Invalid Phone",
+        "Please enter a valid 10-digit phone number",
+      );
       return;
     }
 
@@ -41,18 +42,21 @@ export default function LoginScreen() {
       await sendOtp(phone);
       // Navigate to OTP verification
       router.push({
-        pathname: '/(auth)/verify-otp',
+        pathname: "/(auth)/verify-otp",
         params: { phone },
       });
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to send OTP');
+      Alert.alert("Error", err.message || "Failed to send OTP");
     }
   };
 
-  const displayPhone = phone.length > 0 ? `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` : '';
+  const displayPhone =
+    phone.length > 0 ? `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` : "";
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: Colors.light.background }]}
+    >
       <View style={styles.content}>
         {/* Logo/Header */}
         <View style={styles.header}>
@@ -92,7 +96,9 @@ export default function LoginScreen() {
           <TouchableOpacity
             style={[
               styles.button,
-              isValid && !isLoading ? styles.buttonActive : styles.buttonDisabled,
+              isValid && !isLoading
+                ? styles.buttonActive
+                : styles.buttonDisabled,
             ]}
             onPress={handleContinue}
             disabled={!isValid || isLoading}
@@ -107,7 +113,7 @@ export default function LoginScreen() {
           {/* Register Link */}
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>New to Drop? </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+            <TouchableOpacity onPress={() => router.push("/(auth)/register")}>
               <Text style={styles.registerLink}>Register here</Text>
             </TouchableOpacity>
           </View>
@@ -116,9 +122,8 @@ export default function LoginScreen() {
         {/* Footer Info */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            By continuing, you agree to our{' '}
-            <Text style={styles.link}>Terms of Service</Text>
-            {' '}and{' '}
+            By continuing, you agree to our{" "}
+            <Text style={styles.link}>Terms of Service</Text> and{" "}
             <Text style={styles.link}>Privacy Policy</Text>
           </Text>
           <TouchableOpacity style={styles.supportButton}>
@@ -137,11 +142,11 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
     paddingVertical: 20,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 40,
     marginBottom: 60,
   },
@@ -151,14 +156,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.light.text,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
     color: Colors.light.tabIconDefault,
-    textAlign: 'center',
+    textAlign: "center",
   },
   form: {
     flex: 1,
@@ -168,22 +173,22 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.light.text,
     marginBottom: 8,
   },
   phoneInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: Colors.light.tabIconDefault,
     borderRadius: 8,
     paddingHorizontal: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   countryCode: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.light.text,
     marginRight: 8,
   },
@@ -201,12 +206,12 @@ const styles = StyleSheet.create({
   button: {
     height: 48,
     borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 32,
   },
   buttonActive: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
   },
   buttonDisabled: {
     backgroundColor: Colors.light.tabIconDefault,
@@ -214,49 +219,49 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    fontWeight: "600",
+    color: "#fff",
   },
   errorBanner: {
-    backgroundColor: '#FFE5E5',
+    backgroundColor: "#FFE5E5",
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
+    borderLeftColor: "#FF6B6B",
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 4,
     marginBottom: 16,
   },
   errorText: {
-    color: '#C00',
+    color: "#C00",
     fontSize: 14,
   },
   footer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingBottom: 20,
   },
   footerText: {
     fontSize: 12,
     color: Colors.light.tabIconDefault,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 16,
     lineHeight: 18,
   },
   link: {
-    color: '#FF6B6B',
-    fontWeight: '600',
+    color: "#FF6B6B",
+    fontWeight: "600",
   },
   supportButton: {
     paddingVertical: 8,
   },
   supportText: {
     fontSize: 14,
-    color: '#FF6B6B',
-    fontWeight: '600',
+    color: "#FF6B6B",
+    fontWeight: "600",
   },
   registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 16,
   },
   registerText: {
@@ -265,7 +270,7 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     fontSize: 14,
-    color: '#FF6B6B',
-    fontWeight: '600',
+    color: "#FF6B6B",
+    fontWeight: "600",
   },
 });

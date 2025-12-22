@@ -1,9 +1,9 @@
 import React, { useEffect, useCallback } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
@@ -101,15 +101,15 @@ export default function OrdersScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Available Orders</Text>
         <Text style={styles.subtitle}>
-          {orders.length} order{orders.length !== 1 ? 's' : ''} available
+          {orders?.length || 0} order{orders?.length || 0 !== 1 ? 's' : ''} available
         </Text>
       </View>
 
-      {isLoading && !orders.length ? (
+      {isLoading && !(orders?.length) ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
         </View>
-      ) : orders.length === 0 ? (
+      ) : (orders?.length || 0) === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>📭</Text>
           <Text style={styles.emptyTitle}>No Orders Available</Text>

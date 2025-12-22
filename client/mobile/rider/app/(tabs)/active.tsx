@@ -1,9 +1,9 @@
 import React, { useEffect, useCallback } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
   ActivityIndicator,
   FlatList,
 } from 'react-native';
@@ -20,7 +20,7 @@ export default function ActiveScreen() {
     }, [fetchActiveOrders])
   );
 
-  if (isLoading && !orders.length) {
+  if (isLoading && !(orders?.length)) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
         <View style={styles.loadingContainer}>
@@ -34,10 +34,10 @@ export default function ActiveScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Active Deliveries</Text>
-        <Text style={styles.subtitle}>{orders.length} delivery(ies) in progress</Text>
+        <Text style={styles.subtitle}>{orders?.length || 0} delivery(ies) in progress</Text>
       </View>
 
-      {orders.length === 0 ? (
+      {(orders?.length || 0) === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🚚</Text>
           <Text style={styles.emptyTitle}>No Active Deliveries</Text>
