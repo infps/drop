@@ -3,12 +3,12 @@ import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../constants/theme';
@@ -154,7 +154,7 @@ export default function HomeScreen() {
               <Text style={styles.actionIcon}>🚗</Text>
               <Text style={styles.actionTitle}>Active Deliveries</Text>
               <Text style={styles.actionSubText}>
-                {activeOrders.length} orders
+                {activeOrders?.length || 0} orders
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -188,12 +188,12 @@ export default function HomeScreen() {
             <View
               style={[
                 styles.progressFill,
-                { width: `${((activeOrders.length || 0) / 10) * 100}%` },
+                { width: `${((activeOrders?.length || 0) / 10) * 100}%` },
               ]}
             />
           </View>
           <Text style={styles.progressText}>
-            {activeOrders.length} / 10 orders
+            {activeOrders?.length || 0} / 10 orders
           </Text>
         </View>
 

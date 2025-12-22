@@ -3,18 +3,18 @@ import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../constants/theme';
 import { useRider } from '../../hooks/use-rider';
 import { formatCurrency } from '../../utils/formatting';
 
 export default function EarningsScreen() {
-  const { earnings, isLoading, fetchEarnings } = useRider();
+  const { earnings, isLoading, fetchEarnings, error, errorDetails, clearError } = useRider();
   const [selectedPeriod, setSelectedPeriod] = useState<
     'today' | 'week' | 'month' | 'all'
   >('today');
@@ -35,6 +35,46 @@ export default function EarningsScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.errorContainer}>
+          <View style={styles.errorBox}>
+            <Text style={styles.errorTitle}>⚠️ Error Loading Earnings</Text>
+            <Text style={styles.errorMessage}>{error}</Text>
+
+            {errorDetails && (
+              <View style={styles.errorDetails}>
+                <Text style={styles.detailsLabel}>Error Details:</Text>
+                {errorDetails.statusCode && (
+                  <Text style={styles.detailsText}>Status Code: {errorDetails.statusCode}</Text>
+                )}
+                {errorDetails.code && (
+                  <Text style={styles.detailsText}>Error Code: {errorDetails.code}</Text>
+                )}
+                {errorDetails.details && (
+                  <Text style={styles.detailsText}>
+                    Details: {JSON.stringify(errorDetails.details, null, 2)}
+                  </Text>
+                )}
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => {
+                clearError();
+                fetchEarnings(selectedPeriod);
+              }}
+            >
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -159,6 +199,62 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  errorBox: {
+    backgroundColor: '#fff3f3',
+    borderRadius: 12,
+    padding: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF6B6B',
+    marginTop: 20,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FF6B6B',
+    marginBottom: 12,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#d32f2f',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  errorDetails: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ffcccc',
+  },
+  detailsLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  detailsText: {
+    fontSize: 12,
+    color: '#333',
+    marginBottom: 8,
+    fontFamily: 'Courier New',
+  },
+  retryButton: {
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
   periodSelector: {
     flexDirection: 'row',

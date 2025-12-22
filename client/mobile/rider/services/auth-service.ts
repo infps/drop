@@ -1,18 +1,22 @@
-import { apiClient } from './api';
+import { apiClient } from "./api";
 import {
   SendOtpRequest,
   SendOtpResponse,
   VerifyOtpRequest,
   VerifyOtpResponse,
   AuthUser,
-} from '../types';
+} from "../types";
 
 export const authService = {
   /**
    * Send OTP to rider's phone number
    */
   async sendOtp(data: SendOtpRequest): Promise<SendOtpResponse> {
-    const response = await apiClient.post<SendOtpResponse>('/auth/send-otp', data);
+    console.log("sending request");
+    const response = await apiClient.post<SendOtpResponse>(
+      "/auth/send-otp",
+      data,
+    );
     return response.data;
   },
 
@@ -20,7 +24,13 @@ export const authService = {
    * Verify OTP and get authentication token
    */
   async verifyOtp(data: VerifyOtpRequest): Promise<VerifyOtpResponse> {
-    const response = await apiClient.post<VerifyOtpResponse>('/auth/verify-otp', data);
+    const response = await apiClient.post<VerifyOtpResponse>(
+      "/auth/verify-otp",
+      {
+        ...data,
+        type: 'rider', // Always send rider type for this app
+      },
+    );
     const { token } = response.data;
 
     // Store token securely
@@ -35,7 +45,7 @@ export const authService = {
    * Get current authenticated user
    */
   async getCurrentUser(): Promise<AuthUser> {
-    const response = await apiClient.get<AuthUser>('/auth/me');
+    const response = await apiClient.get<AuthUser>("/auth/me");
     return response.data;
   },
 
@@ -44,9 +54,9 @@ export const authService = {
    */
   async logout(): Promise<void> {
     try {
-      await apiClient.post('/auth/logout', {});
+      await apiClient.post("/auth/logout", {});
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     } finally {
       await apiClient.clearToken();
     }

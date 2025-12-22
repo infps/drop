@@ -361,7 +361,7 @@ app.get('/earnings', async (c) => {
     };
 
     if (startDate) {
-      where.createdAt = {
+      where.date = {
         gte: startDate,
       };
     }
@@ -369,7 +369,7 @@ app.get('/earnings', async (c) => {
     const [earnings, total, summary] = await Promise.all([
       prisma.riderEarning.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { date: 'desc' },
         skip,
         take: limit,
       }),
@@ -403,7 +403,7 @@ app.get('/earnings', async (c) => {
           baseEarning: summary._sum.baseEarning || 0,
           tips: summary._sum.tip || 0,
           total: summary._sum.total || 0,
-          count: summary._count,
+          count: summary._count || 0,
         },
         rider,
       },
@@ -459,7 +459,7 @@ app.get('/profile', async (c) => {
       prisma.riderEarning.aggregate({
         where: {
           riderId: user.userId,
-          createdAt: {
+          date: {
             gte: today,
           },
         },

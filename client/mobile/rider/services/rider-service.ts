@@ -10,8 +10,20 @@ export const riderService = {
    * Get current rider's profile
    */
   async getProfile(): Promise<Rider> {
-    const response = await apiClient.get<Rider>('/rider/profile');
-    return response.data;
+    try {
+      console.log('Fetching rider profile');
+      const response = await apiClient.get<Rider>('/rider/profile');
+      console.log('Profile response:', response);
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to fetch profile:', {
+        error: error.message,
+        details: error.details,
+        code: error.code,
+        statusCode: error.statusCode,
+      });
+      throw error;
+    }
   },
 
   /**
@@ -26,10 +38,22 @@ export const riderService = {
    * Get rider earnings
    */
   async getEarnings(period: 'today' | 'week' | 'month' | 'all' = 'today', page = 1, limit = 10): Promise<RiderEarningsResponse> {
-    const response = await apiClient.get<RiderEarningsResponse>('/rider/earnings', {
-      params: { period, page, limit },
-    });
-    return response.data;
+    try {
+      console.log('Fetching earnings for period:', period);
+      const response = await apiClient.get<RiderEarningsResponse>('/rider/earnings', {
+        params: { period, page, limit },
+      });
+      console.log('Earnings response:', response);
+      return response.data;
+    } catch (error: any) {
+      console.error('Failed to fetch earnings:', {
+        error: error.message,
+        details: error.details,
+        code: error.code,
+        statusCode: error.statusCode,
+      });
+      throw error;
+    }
   },
 
   /**

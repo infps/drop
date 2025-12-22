@@ -3,11 +3,12 @@ import axios, {
   AxiosError,
   AxiosResponse,
   InternalAxiosRequestConfig,
-} from 'axios';
-import * as SecureStore from 'expo-secure-store';
-import { ApiResponse, ApiError } from '../types';
+} from "axios";
+import * as SecureStore from "expo-secure-store";
+import { ApiResponse, ApiError } from "../types";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1';
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3001/api/v1";
 
 class ApiClient {
   private api: AxiosInstance;
@@ -18,7 +19,7 @@ class ApiClient {
       baseURL: API_BASE_URL,
       timeout: 30000,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -31,7 +32,7 @@ class ApiClient {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     // Response interceptor - handle errors
@@ -43,7 +44,7 @@ class ApiClient {
           await this.clearToken();
         }
         return Promise.reject(this.formatError(error));
-      }
+      },
     );
   }
 
@@ -53,10 +54,10 @@ class ApiClient {
   async getToken(): Promise<string | null> {
     try {
       if (this.token) return this.token;
-      this.token = await SecureStore.getItemAsync('rider_token');
+      this.token = await SecureStore.getItemAsync("rider_token");
       return this.token;
     } catch (error) {
-      console.error('Error retrieving token:', error);
+      console.error("Error retrieving token:", error);
       return null;
     }
   }
@@ -67,9 +68,9 @@ class ApiClient {
   async setToken(token: string): Promise<void> {
     try {
       this.token = token;
-      await SecureStore.setItemAsync('rider_token', token);
+      await SecureStore.setItemAsync("rider_token", token);
     } catch (error) {
-      console.error('Error setting token:', error);
+      console.error("Error setting token:", error);
     }
   }
 
@@ -79,9 +80,9 @@ class ApiClient {
   async clearToken(): Promise<void> {
     try {
       this.token = null;
-      await SecureStore.deleteItemAsync('rider_token');
+      await SecureStore.deleteItemAsync("rider_token");
     } catch (error) {
-      console.error('Error clearing token:', error);
+      console.error("Error clearing token:", error);
     }
   }
 
@@ -92,12 +93,22 @@ class ApiClient {
     const errorMessage = error.response?.data?.message || error.message;
     const errorCode = error.response?.data?.code;
     const statusCode = error.response?.status;
+    const fullDetails = error.response?.data;
+
+    // Log full error for debugging
+    console.error('API Error Details:', {
+      message: errorMessage,
+      code: errorCode,
+      statusCode: statusCode,
+      fullResponse: fullDetails,
+      originalError: error.response?.data,
+    });
 
     return {
       message: errorMessage,
       code: errorCode,
       statusCode: statusCode,
-      details: error.response?.data,
+      details: fullDetails,
     };
   }
 
@@ -106,9 +117,14 @@ class ApiClient {
    */
   async get<T>(url: string, config?: any): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.get(url, config);
+      console.log('GET request to:', url);
+      const response: AxiosResponse<ApiResponse<T>> = await this.api.get(
+        url,
+        config,
+      );
       return response.data;
     } catch (error) {
+      console.error('GET request failed:', url, error);
       throw error;
     }
   }
@@ -116,11 +132,21 @@ class ApiClient {
   /**
    * Make POST request
    */
-  async post<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+  async post<T>(
+    url: string,
+    data?: any,
+    config?: any,
+  ): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.post(url, data, config);
+      console.log("POST request to", url, "data:", data);
+      const response: AxiosResponse<ApiResponse<T>> = await this.api.post(
+        url,
+        data,
+        config,
+      );
       return response.data;
     } catch (error) {
+      console.error("POST request failed:", url, error);
       throw error;
     }
   }
@@ -130,7 +156,11 @@ class ApiClient {
    */
   async put<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.put(url, data, config);
+      const response: AxiosResponse<ApiResponse<T>> = await this.api.put(
+        url,
+        data,
+        config,
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -140,9 +170,17 @@ class ApiClient {
   /**
    * Make PATCH request
    */
-  async patch<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+  async patch<T>(
+    url: string,
+    data?: any,
+    config?: any,
+  ): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.patch(url, data, config);
+      const response: AxiosResponse<ApiResponse<T>> = await this.api.patch(
+        url,
+        data,
+        config,
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -154,7 +192,10 @@ class ApiClient {
    */
   async delete<T>(url: string, config?: any): Promise<ApiResponse<T>> {
     try {
-      const response: AxiosResponse<ApiResponse<T>> = await this.api.delete(url, config);
+      const response: AxiosResponse<ApiResponse<T>> = await this.api.delete(
+        url,
+        config,
+      );
       return response.data;
     } catch (error) {
       throw error;

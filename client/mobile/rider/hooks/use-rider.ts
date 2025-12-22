@@ -7,6 +7,7 @@ export interface UseRiderReturn {
   earnings: RiderEarningsResponse | null;
   isLoading: boolean;
   error: string | null;
+  errorDetails: any | null;
 
   // Actions
   fetchProfile: () => Promise<void>;
@@ -22,15 +23,25 @@ export const useRider = (): UseRiderReturn => {
   const [earnings, setEarnings] = useState<RiderEarningsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<any | null>(null);
 
   const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
+      setErrorDetails(null);
       const data = await riderService.getProfile();
       setRider(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch rider profile');
+      const errorMsg = err.message || 'Failed to fetch rider profile';
+      setError(errorMsg);
+      setErrorDetails({
+        message: err.message,
+        code: err.code,
+        statusCode: err.statusCode,
+        details: err.details,
+      });
+      console.error('Profile fetch error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -55,10 +66,19 @@ export const useRider = (): UseRiderReturn => {
       try {
         setIsLoading(true);
         setError(null);
+        setErrorDetails(null);
         const data = await riderService.getEarnings(period, page);
         setEarnings(data);
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch earnings');
+        const errorMsg = err.message || 'Failed to fetch earnings';
+        setError(errorMsg);
+        setErrorDetails({
+          message: err.message,
+          code: err.code,
+          statusCode: err.statusCode,
+          details: err.details,
+        });
+        console.error('Earnings fetch error:', err);
       } finally {
         setIsLoading(false);
       }
@@ -81,6 +101,7 @@ export const useRider = (): UseRiderReturn => {
 
   const clearError = useCallback(() => {
     setError(null);
+    setErrorDetails(null);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -106,6 +127,7 @@ export const useRider = (): UseRiderReturn => {
     earnings,
     isLoading,
     error,
+    errorDetails,
     fetchProfile,
     updateProfile,
     fetchEarnings,
