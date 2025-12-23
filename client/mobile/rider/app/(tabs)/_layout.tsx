@@ -12,9 +12,20 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: '#FF6B6B',
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          borderTopWidth: 1,
+          borderTopColor: '#f0f0f0',
+          paddingBottom: 0,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          marginBottom: 8,
+        },
       }}
     >
       <Tabs.Screen
@@ -34,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="active"
         options={{
-          title: 'Active',
+          title: 'Deliveries',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="location.fill" color={color} />,
         }}
       />

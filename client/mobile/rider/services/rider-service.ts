@@ -3,6 +3,8 @@ import {
   Rider,
   RiderEarningsResponse,
   RiderStats,
+  Withdrawal,
+  WithdrawalsResponse,
 } from '../types';
 
 export const riderService = {
@@ -85,10 +87,11 @@ export const riderService = {
   /**
    * Toggle online status
    */
-  async setOnlineStatus(isOnline: boolean): Promise<void> {
-    await apiClient.post('/rider/location', {
+  async setOnlineStatus(isOnline: boolean): Promise<{ isOnline: boolean; isAvailable: boolean }> {
+    const response = await apiClient.post<{ isOnline: boolean; isAvailable: boolean }>('/rider/status', {
       isOnline,
     });
+    return response.data;
   },
 
   /**
@@ -96,6 +99,32 @@ export const riderService = {
    */
   async getStats(): Promise<RiderStats> {
     const response = await apiClient.get<RiderStats>('/rider/stats');
+    return response.data;
+  },
+
+  /**
+   * Request a withdrawal
+   */
+  async requestWithdrawal(amount: number): Promise<Withdrawal> {
+    const response = await apiClient.post<Withdrawal>('/rider/withdrawals', { amount });
+    return response.data;
+  },
+
+  /**
+   * Get withdrawal history
+   */
+  async getWithdrawals(page = 1, limit = 20): Promise<WithdrawalsResponse> {
+    const response = await apiClient.get<WithdrawalsResponse>('/rider/withdrawals', {
+      params: { page, limit },
+    });
+    return response.data;
+  },
+
+  /**
+   * Get pending withdrawal (if any)
+   */
+  async getPendingWithdrawal(): Promise<Withdrawal | null> {
+    const response = await apiClient.get<Withdrawal | null>('/rider/withdrawals/pending');
     return response.data;
   },
 };

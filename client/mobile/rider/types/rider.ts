@@ -12,6 +12,7 @@ export interface Rider {
   vehicleType: VehicleType;
   vehicleNumber?: string;
   vehicleModel?: string;
+  vehicleColor?: string;
   isOnline: boolean;
   isAvailable: boolean;
   currentLat?: number;
@@ -20,6 +21,13 @@ export interface Rider {
   totalDeliveries: number;
   totalEarnings: number;
   assignedZone?: string;
+  // Bank Details
+  bankAccount?: string;
+  bankName?: string;
+  bankBranch?: string;
+  ifscCode?: string;
+  accountHolderName?: string;
+  panNumber?: string;
   createdAt: string;
   updatedAt: string;
   // Stats
@@ -42,11 +50,17 @@ export interface RiderEarning {
 export interface RiderEarningsResponse {
   earnings: RiderEarning[];
   summary: {
-    totalEarning: number;
-    totalTips: number;
-    totalIncentives: number;
-    totalPenalties: number;
+    baseEarning: number;
+    tips: number;
+    total: number; // Available balance (can be withdrawn)
+    totalEarned?: number; // Lifetime earnings
+    totalWithdrawn?: number; // Total already withdrawn
+    count: number;
+  };
+  rider?: {
     totalDeliveries: number;
+    totalEarnings: number;
+    rating: number;
   };
   page: number;
   limit: number;
@@ -61,4 +75,28 @@ export interface RiderStats {
   rating: number;
   activeOrders: number;
   isOnline: boolean;
+}
+
+export type WithdrawalStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export interface Withdrawal {
+  id: string;
+  riderId: string;
+  amount: number;
+  status: WithdrawalStatus;
+  bankAccount: string;
+  ifscCode: string;
+  accountHolderName: string;
+  transactionId?: string;
+  failureReason?: string;
+  requestedAt: string;
+  processedAt?: string;
+  completedAt?: string;
+}
+
+export interface WithdrawalsResponse {
+  withdrawals: Withdrawal[];
+  page: number;
+  limit: number;
+  total: number;
 }

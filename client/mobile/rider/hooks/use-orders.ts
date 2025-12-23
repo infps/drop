@@ -16,6 +16,7 @@ export interface UseOrdersReturn {
   fetchCompletedOrders: (page?: number) => Promise<void>;
   acceptOrder: (orderId: string) => Promise<void>;
   confirmPickup: (orderId: string) => Promise<void>;
+  startDelivery: (orderId: string) => Promise<void>;
   completeDelivery: (orderId: string) => Promise<void>;
   cancelOrder: (orderId: string) => Promise<void>;
   clearError: () => void;
@@ -105,6 +106,21 @@ export const useOrders = (): UseOrdersReturn => {
     }
   }, [fetchActiveOrders]);
 
+  const startDelivery = useCallback(async (orderId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      await orderService.startDelivery(orderId);
+      // Refresh active orders
+      await fetchActiveOrders();
+    } catch (err: any) {
+      setError(err.message || 'Failed to start delivery');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchActiveOrders]);
+
   const completeDelivery = useCallback(async (orderId: string) => {
     try {
       setIsLoading(true);
@@ -159,6 +175,7 @@ export const useOrders = (): UseOrdersReturn => {
     fetchCompletedOrders,
     acceptOrder,
     confirmPickup,
+    startDelivery,
     completeDelivery,
     cancelOrder,
     clearError,

@@ -3,30 +3,33 @@ import { format, formatDistanceToNow, parse } from 'date-fns';
 /**
  * Format currency amount
  */
-export const formatCurrency = (amount: number, currency: string = '₹'): string => {
-  return `${currency}${amount.toFixed(2)}`;
+export const formatCurrency = (amount: number | undefined | null, currency: string = '₹'): string => {
+  const value = amount ?? 0;
+  return `${currency}${value.toFixed(2)}`;
 };
 
 /**
  * Format distance in kilometers
  */
-export const formatDistance = (distance: number): string => {
-  if (distance < 1) {
-    return `${Math.round(distance * 1000)}m`;
+export const formatDistance = (distance: number | undefined | null): string => {
+  const value = distance ?? 0;
+  if (value < 1) {
+    return `${Math.round(value * 1000)}m`;
   }
-  return `${distance.toFixed(1)}km`;
+  return `${value.toFixed(1)}km`;
 };
 
 /**
  * Format time duration in minutes
  */
-export const formatDuration = (minutes: number): string => {
-  if (minutes < 60) {
-    return `${Math.round(minutes)}min`;
+export const formatDuration = (minutes: number | undefined | null): string => {
+  const value = minutes ?? 0;
+  if (value < 60) {
+    return `${Math.round(value)}min`;
   }
 
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
+  const hours = Math.floor(value / 60);
+  const mins = value % 60;
 
   if (mins === 0) {
     return `${hours}h`;
@@ -91,6 +94,7 @@ export const formatRelativeTime = (date: string | Date): string => {
  * Format phone number
  */
 export const formatPhoneNumber = (phone: string): string => {
+  if (!phone) return '';
   const cleaned = phone.replace(/\D/g, '');
   if (cleaned.length === 10) {
     return `+91 ${cleaned.slice(0, 5)} ${cleaned.slice(5)}`;
@@ -111,15 +115,17 @@ export const formatOrderNumber = (orderId: string): string => {
 /**
  * Format percentage
  */
-export const formatPercentage = (value: number, decimals: number = 0): string => {
-  return `${value.toFixed(decimals)}%`;
+export const formatPercentage = (value: number | undefined | null, decimals: number = 0): string => {
+  const val = value ?? 0;
+  return `${val.toFixed(decimals)}%`;
 };
 
 /**
  * Format rating
  */
-export const formatRating = (rating: number): string => {
-  return `${rating.toFixed(1)}⭐`;
+export const formatRating = (rating: number | undefined | null): string => {
+  const value = rating ?? 0;
+  return `${value.toFixed(1)}⭐`;
 };
 
 /**
@@ -149,6 +155,7 @@ export const formatOrderStatus = (status: string): string => {
     CONFIRMED: 'Confirmed',
     PREPARING: 'Preparing',
     READY_FOR_PICKUP: 'Ready for Pickup',
+    ASSIGNED: 'Rider Assigned',
     PICKED_UP: 'Picked Up',
     OUT_FOR_DELIVERY: 'Out for Delivery',
     DELIVERED: 'Delivered',

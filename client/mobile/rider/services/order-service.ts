@@ -11,42 +11,60 @@ export const orderService = {
    * Get available orders to accept
    */
   async getAvailableOrders(page = 1, limit = 10): Promise<OrdersResponse> {
-    const response = await apiClient.get<OrdersResponse>('/rider/orders', {
+    const response = await apiClient.get<any>('/rider/orders', {
       params: {
         type: 'available',
         page,
         limit,
       },
     });
-    return response.data;
+    // Map server's PaginatedResponse to client's OrdersResponse
+    return {
+      orders: response.data || [],
+      page: response.pagination?.page || page,
+      limit: response.pagination?.limit || limit,
+      total: response.pagination?.total || 0,
+    };
   },
 
   /**
    * Get active orders for rider
    */
   async getActiveOrders(page = 1, limit = 10): Promise<OrdersResponse> {
-    const response = await apiClient.get<OrdersResponse>('/rider/orders', {
+    const response = await apiClient.get<any>('/rider/orders', {
       params: {
         type: 'active',
         page,
         limit,
       },
     });
-    return response.data;
+    // Map server's PaginatedResponse to client's OrdersResponse
+    return {
+      orders: response.data || [],
+      page: response.pagination?.page || page,
+      limit: response.pagination?.limit || limit,
+      total: response.pagination?.total || 0,
+    };
   },
 
   /**
    * Get completed orders (history)
    */
   async getCompletedOrders(page = 1, limit = 10): Promise<OrdersResponse> {
-    const response = await apiClient.get<OrdersResponse>('/rider/orders', {
+    const response = await apiClient.get<any>('/rider/orders', {
       params: {
         type: 'completed',
         page,
         limit,
       },
     });
-    return response.data;
+    // Map server's PaginatedResponse to client's OrdersResponse
+    return {
+      orders: response.data || [],
+      page: response.pagination?.page || page,
+      limit: response.pagination?.limit || limit,
+      total: response.pagination?.total || 0,
+    };
   },
 
   /**
@@ -72,7 +90,7 @@ export const orderService = {
   },
 
   /**
-   * Confirm pickup from vendor
+   * Confirm pickup from vendor (ASSIGNED -> PICKED_UP)
    */
   async confirmPickup(orderId: string): Promise<OrderActionResponse> {
     const response = await apiClient.post<OrderActionResponse>(
@@ -86,7 +104,21 @@ export const orderService = {
   },
 
   /**
-   * Complete delivery to customer
+   * Start delivery to customer (PICKED_UP -> OUT_FOR_DELIVERY)
+   */
+  async startDelivery(orderId: string): Promise<OrderActionResponse> {
+    const response = await apiClient.post<OrderActionResponse>(
+      '/rider/orders/accept',
+      {
+        orderId,
+        action: 'start_delivery',
+      }
+    );
+    return response.data;
+  },
+
+  /**
+   * Complete delivery to customer (OUT_FOR_DELIVERY -> DELIVERED)
    */
   async completeDelivery(orderId: string): Promise<OrderActionResponse> {
     const response = await apiClient.post<OrderActionResponse>(
@@ -120,9 +152,15 @@ export const orderService = {
     limit?: number;
     search?: string;
   }): Promise<OrdersResponse> {
-    const response = await apiClient.get<OrdersResponse>('/rider/orders', {
+    const response = await apiClient.get<any>('/rider/orders', {
       params: filters,
     });
-    return response.data;
+    // Map server's PaginatedResponse to client's OrdersResponse
+    return {
+      orders: response.data || [],
+      page: response.pagination?.page || filters.page || 1,
+      limit: response.pagination?.limit || filters.limit || 10,
+      total: response.pagination?.total || 0,
+    };
   },
 };

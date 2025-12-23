@@ -3,6 +3,7 @@ export type OrderStatus =
   | 'CONFIRMED'
   | 'PREPARING'
   | 'READY_FOR_PICKUP'
+  | 'ASSIGNED'
   | 'PICKED_UP'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVERED'
@@ -69,7 +70,10 @@ export interface Order {
     logo?: string;
     address: string;
     phone?: string;
+    latitude?: number;
+    longitude?: number;
   };
+  paymentMethod: string;
   rider?: {
     id: string;
     name: string;

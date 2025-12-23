@@ -7,9 +7,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../hooks/use-auth';
 import { useRider } from '../../hooks/use-rider';
@@ -37,7 +39,7 @@ export default function ProfileScreen() {
 
   if (isLoading && !rider) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
+      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: Colors.light.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
         </View>
@@ -46,18 +48,22 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: Colors.light.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.name?.charAt(0).toUpperCase() || '👤'}
-            </Text>
+            {(user?.name || rider?.name) ? (
+              <Text style={styles.avatarText}>
+                {(user?.name || rider?.name || 'R').charAt(0).toUpperCase()}
+              </Text>
+            ) : (
+              <MaterialIcons name="person" size={40} color="#fff" />
+            )}
           </View>
-          <Text style={styles.name}>{user?.name || 'Rider'}</Text>
+          <Text style={styles.name}>{user?.name || rider?.name || 'Rider'}</Text>
           <Text style={styles.phone}>
-            {user?.phone ? formatPhoneNumber(user.phone) : 'No phone'}
+            {formatPhoneNumber(user?.phone || rider?.phone || '')}
           </Text>
         </View>
 
@@ -69,7 +75,10 @@ export default function ProfileScreen() {
               <Text style={styles.statLabel}>Deliveries</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{rider.rating.toFixed(1)}⭐</Text>
+              <View style={styles.ratingRow}>
+                <Text style={styles.statValue}>{rider.rating.toFixed(1)}</Text>
+                <MaterialIcons name="star" size={20} color="#FFB800" />
+              </View>
               <Text style={styles.statLabel}>Rating</Text>
             </View>
             <View style={styles.statItem}>
@@ -84,53 +93,77 @@ export default function ProfileScreen() {
         {/* Menu Sections */}
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Account</Text>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>✏️</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/edit-profile')}
+          >
+            <MaterialIcons name="edit" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Edit Profile</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>🚗</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/vehicle-details')}
+          >
+            <MaterialIcons name="directions-car" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Vehicle Details</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>📄</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/documents')}
+          >
+            <MaterialIcons name="description" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Documents</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>Financial</Text>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>🏦</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/bank-account')}
+          >
+            <MaterialIcons name="account-balance" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Bank Account</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>💸</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/withdrawal-history')}
+          >
+            <MaterialIcons name="payment" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Withdrawal History</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.menuSection}>
           <Text style={styles.sectionTitle}>More</Text>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>⭐</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/ratings-reviews')}
+          >
+            <MaterialIcons name="star" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Ratings & Reviews</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>⚙️</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/settings')}
+          >
+            <MaterialIcons name="settings" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Settings</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
-            <Text style={styles.menuIcon}>❓</Text>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => router.push('/(profile)/help-support')}
+          >
+            <MaterialIcons name="help" size={20} color="#666" style={styles.menuIcon} />
             <Text style={styles.menuText}>Help & Support</Text>
-            <Text style={styles.menuArrow}>›</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#ccc" />
           </TouchableOpacity>
         </View>
 
@@ -191,17 +224,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   statItem: {
     alignItems: 'center',
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
   },
   statValue: {
     fontSize: 18,
     fontWeight: '700',
     color: '#FF6B6B',
-    marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
@@ -227,11 +279,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     marginBottom: 8,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   menuIcon: {
-    fontSize: 20,
     marginRight: 12,
   },
   menuText: {
@@ -239,10 +299,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.light.text,
-  },
-  menuArrow: {
-    fontSize: 18,
-    color: Colors.light.tabIconDefault,
   },
   logoutButton: {
     marginHorizontal: 16,

@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Rider, RiderEarningsResponse } from '../types';
+import { Rider, RiderEarningsResponse, Withdrawal, WithdrawalsResponse } from '../types';
 import { riderService } from '../services/rider-service';
 
 export interface UseRiderReturn {
   rider: Rider | null;
   earnings: RiderEarningsResponse | null;
+  withdrawals: WithdrawalsResponse | null;
+  pendingWithdrawal: Withdrawal | null;
   isLoading: boolean;
   error: string | null;
   errorDetails: any | null;
@@ -14,6 +16,9 @@ export interface UseRiderReturn {
   updateProfile: (data: Partial<Rider>) => Promise<void>;
   fetchEarnings: (period?: 'today' | 'week' | 'month' | 'all', page?: number) => Promise<void>;
   setOnlineStatus: (isOnline: boolean) => Promise<void>;
+  fetchWithdrawals: (page?: number) => Promise<void>;
+  fetchPendingWithdrawal: () => Promise<void>;
+  requestWithdrawal: (amount: number) => Promise<Withdrawal>;
   clearError: () => void;
   refresh: () => Promise<void>;
 }
@@ -21,6 +26,8 @@ export interface UseRiderReturn {
 export const useRider = (): UseRiderReturn => {
   const [rider, setRider] = useState<Rider | null>(null);
   const [earnings, setEarnings] = useState<RiderEarningsResponse | null>(null);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalsResponse | null>(null);
+  const [pendingWithdrawal, setPendingWithdrawal] = useState<Withdrawal | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<any | null>(null);
@@ -99,6 +106,46 @@ export const useRider = (): UseRiderReturn => {
     }
   }, [rider]);
 
+  const fetchWithdrawals = useCallback(async (page: number = 1) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await riderService.getWithdrawals(page);
+      setWithdrawals(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch withdrawals');
+      console.error('Withdrawals fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchPendingWithdrawal = useCallback(async () => {
+    try {
+      const data = await riderService.getPendingWithdrawal();
+      setPendingWithdrawal(data); // Will be null if no pending withdrawal
+    } catch (err: any) {
+      // On error, clear pending withdrawal to show the button
+      setPendingWithdrawal(null);
+      console.error('Pending withdrawal fetch error:', err);
+    }
+  }, []);
+
+  const requestWithdrawal = useCallback(async (amount: number): Promise<Withdrawal> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const withdrawal = await riderService.requestWithdrawal(amount);
+      setPendingWithdrawal(withdrawal);
+      return withdrawal;
+    } catch (err: any) {
+      setError(err.message || 'Failed to request withdrawal');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const clearError = useCallback(() => {
     setError(null);
     setErrorDetails(null);
@@ -125,6 +172,8 @@ export const useRider = (): UseRiderReturn => {
   return {
     rider,
     earnings,
+    withdrawals,
+    pendingWithdrawal,
     isLoading,
     error,
     errorDetails,
@@ -132,6 +181,9 @@ export const useRider = (): UseRiderReturn => {
     updateProfile,
     fetchEarnings,
     setOnlineStatus,
+    fetchWithdrawals,
+    fetchPendingWithdrawal,
+    requestWithdrawal,
     clearError,
     refresh,
   };

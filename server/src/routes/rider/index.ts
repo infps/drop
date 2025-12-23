@@ -38,7 +38,7 @@ app.get('/orders', async (c) => {
       // Rider's active orders
       where.riderId = user.userId;
       where.status = {
-        in: ['PICKED_UP', 'OUT_FOR_DELIVERY'],
+        in: ['ASSIGNED', 'PICKED_UP', 'OUT_FOR_DELIVERY'],
       };
     } else if (type === 'completed') {
       // Rider's completed orders
@@ -117,7 +117,7 @@ app.post('/orders/accept', async (c) => {
     }
 
     if (action === 'accept') {
-      // Accept order
+      // Accept order - assign rider
       if (order.riderId) {
         return badRequestResponse(c, 'Order already assigned to a rider');
       }
@@ -130,11 +130,11 @@ app.post('/orders/accept', async (c) => {
         where: { id: orderId },
         data: {
           riderId: user.userId,
-          status: 'PICKED_UP',
+          status: 'ASSIGNED',
           statusHistory: {
             create: {
-              status: 'PICKED_UP',
-              note: 'Order picked up by rider',
+              status: 'ASSIGNED',
+              note: 'Rider assigned to order',
             },
           },
         },
@@ -144,15 +144,53 @@ app.post('/orders/accept', async (c) => {
         c,
         {
           order: updatedOrder,
-          message: 'Order accepted',
+          message: 'Order accepted - head to the restaurant',
         },
         'Order accepted'
       );
     }
 
     if (action === 'pickup') {
+      // Pickup order from restaurant
       if (order.riderId !== user.userId) {
         return unauthorizedResponse(c, 'Not authorized');
+      }
+
+      if (order.status !== 'ASSIGNED') {
+        return badRequestResponse(c, 'Order must be assigned before pickup');
+      }
+
+      const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'PICKED_UP',
+          statusHistory: {
+            create: {
+              status: 'PICKED_UP',
+              note: 'Order picked up from restaurant',
+            },
+          },
+        },
+      });
+
+      return successResponse(
+        c,
+        {
+          order: updatedOrder,
+          message: 'Order picked up',
+        },
+        'Order picked up'
+      );
+    }
+
+    if (action === 'start_delivery') {
+      // Start delivery to customer
+      if (order.riderId !== user.userId) {
+        return unauthorizedResponse(c, 'Not authorized');
+      }
+
+      if (order.status !== 'PICKED_UP') {
+        return badRequestResponse(c, 'Order must be picked up first');
       }
 
       const updatedOrder = await prisma.order.update({
@@ -162,7 +200,7 @@ app.post('/orders/accept', async (c) => {
           statusHistory: {
             create: {
               status: 'OUT_FOR_DELIVERY',
-              note: 'Rider is on the way',
+              note: 'Rider is on the way to customer',
             },
           },
         },
@@ -172,15 +210,19 @@ app.post('/orders/accept', async (c) => {
         c,
         {
           order: updatedOrder,
-          message: 'Order marked as out for delivery',
+          message: 'On the way to customer',
         },
-        'Order marked as out for delivery'
+        'Delivery started'
       );
     }
 
     if (action === 'deliver') {
       if (order.riderId !== user.userId) {
         return unauthorizedResponse(c, 'Not authorized');
+      }
+
+      if (order.status !== 'OUT_FOR_DELIVERY') {
+        return badRequestResponse(c, 'Order must be out for delivery first');
       }
 
       const updatedOrder = await prisma.order.update({
@@ -293,6 +335,41 @@ app.post('/location', async (c) => {
   }
 });
 
+// POST /rider/status - Toggle online/offline status
+app.post('/status', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+
+    if (!user || user.type !== 'rider') {
+      return unauthorizedResponse(c, 'Rider authentication required');
+    }
+
+    const body = await c.req.json();
+    const { isOnline } = body;
+
+    if (isOnline === undefined) {
+      return badRequestResponse(c, 'isOnline status is required');
+    }
+
+    const rider = await prisma.rider.update({
+      where: { id: user.userId },
+      data: { isOnline },
+    });
+
+    return successResponse(
+      c,
+      {
+        isOnline: rider.isOnline,
+        isAvailable: rider.isAvailable,
+      },
+      isOnline ? 'You are now online' : 'You are now offline'
+    );
+  } catch (error) {
+    console.error('Toggle rider status error:', error);
+    return errorResponse(c, 'Failed to update status', 500);
+  }
+});
+
 // GET /rider/location - Get rider status
 app.get('/location', async (c) => {
   try {
@@ -395,6 +472,20 @@ app.get('/earnings', async (c) => {
       },
     });
 
+    // Calculate total withdrawn (pending + processing + completed)
+    const withdrawnAmount = await prisma.riderWithdrawal.aggregate({
+      where: {
+        riderId: user.userId,
+        status: { in: ['PENDING', 'PROCESSING', 'COMPLETED'] },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const totalWithdrawn = withdrawnAmount._sum.amount || 0;
+    const availableBalance = (rider?.totalEarnings || 0) - totalWithdrawn;
+
     return paginatedResponse(
       c,
       {
@@ -402,7 +493,9 @@ app.get('/earnings', async (c) => {
         summary: {
           baseEarning: summary._sum.baseEarning || 0,
           tips: summary._sum.tip || 0,
-          total: summary._sum.total || 0,
+          total: availableBalance, // Available balance (not total earned)
+          totalEarned: rider?.totalEarnings || 0, // Lifetime earnings
+          totalWithdrawn, // Total withdrawn
           count: summary._count || 0,
         },
         rider,
@@ -507,10 +600,14 @@ app.put('/profile', async (c) => {
       vehicleType,
       vehicleNumber,
       vehicleModel,
+      vehicleColor,
       drivingLicense,
       isAvailable,
       bankAccount,
+      bankName,
+      bankBranch,
       ifscCode,
+      accountHolderName,
       panNumber,
     } = body;
 
@@ -521,10 +618,14 @@ app.put('/profile', async (c) => {
     if (vehicleType !== undefined) updateData.vehicleType = vehicleType;
     if (vehicleNumber !== undefined) updateData.vehicleNumber = vehicleNumber;
     if (vehicleModel !== undefined) updateData.vehicleModel = vehicleModel;
+    if (vehicleColor !== undefined) updateData.vehicleColor = vehicleColor;
     if (drivingLicense !== undefined) updateData.drivingLicense = drivingLicense;
     if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
     if (bankAccount !== undefined) updateData.bankAccount = bankAccount;
+    if (bankName !== undefined) updateData.bankName = bankName;
+    if (bankBranch !== undefined) updateData.bankBranch = bankBranch;
     if (ifscCode !== undefined) updateData.ifscCode = ifscCode;
+    if (accountHolderName !== undefined) updateData.accountHolderName = accountHolderName;
     if (panNumber !== undefined) updateData.panNumber = panNumber;
 
     const rider = await prisma.rider.update({
@@ -536,6 +637,143 @@ app.put('/profile', async (c) => {
   } catch (error) {
     console.error('Update rider profile error:', error);
     return errorResponse(c, 'Failed to update profile', 500);
+  }
+});
+
+// POST /rider/withdrawals - Request a withdrawal
+app.post('/withdrawals', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+
+    if (!user || user.type !== 'rider') {
+      return unauthorizedResponse(c, 'Rider authentication required');
+    }
+
+    const body = await c.req.json();
+    const { amount } = body;
+
+    if (!amount || amount <= 0) {
+      return badRequestResponse(c, 'Valid amount is required');
+    }
+
+    // Get rider details
+    const rider = await prisma.rider.findUnique({
+      where: { id: user.userId },
+    });
+
+    if (!rider) {
+      return notFoundResponse(c, 'Rider not found');
+    }
+
+    // Check if bank details are set up
+    if (!rider.bankAccount || !rider.ifscCode || !rider.accountHolderName) {
+      return badRequestResponse(c, 'Please add your bank account details before requesting a withdrawal');
+    }
+
+    // Check if there's already a pending withdrawal
+    const pendingWithdrawal = await prisma.riderWithdrawal.findFirst({
+      where: {
+        riderId: user.userId,
+        status: { in: ['PENDING', 'PROCESSING'] },
+      },
+    });
+
+    if (pendingWithdrawal) {
+      return badRequestResponse(c, 'You already have a pending withdrawal request');
+    }
+
+    // Calculate total withdrawn (pending + processing + completed)
+    const withdrawnAmount = await prisma.riderWithdrawal.aggregate({
+      where: {
+        riderId: user.userId,
+        status: { in: ['PENDING', 'PROCESSING', 'COMPLETED'] },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const totalWithdrawn = withdrawnAmount._sum.amount || 0;
+    const availableBalance = rider.totalEarnings - totalWithdrawn;
+
+    // Validate requested amount against available balance
+    if (amount > availableBalance) {
+      return badRequestResponse(
+        c,
+        `Insufficient balance. Available: ₹${availableBalance.toFixed(2)}, Requested: ₹${amount.toFixed(2)}`
+      );
+    }
+
+    // Create withdrawal request
+    const withdrawal = await prisma.riderWithdrawal.create({
+      data: {
+        riderId: user.userId,
+        amount,
+        bankAccount: rider.bankAccount,
+        ifscCode: rider.ifscCode,
+        accountHolderName: rider.accountHolderName,
+      },
+    });
+
+    return successResponse(c, withdrawal, 'Withdrawal request submitted successfully');
+  } catch (error) {
+    console.error('Request withdrawal error:', error);
+    return errorResponse(c, 'Failed to request withdrawal', 500);
+  }
+});
+
+// GET /rider/withdrawals - Get withdrawal history
+app.get('/withdrawals', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+
+    if (!user || user.type !== 'rider') {
+      return unauthorizedResponse(c, 'Rider authentication required');
+    }
+
+    const { page, limit, skip } = getPaginationParams(c);
+
+    const [withdrawals, total] = await Promise.all([
+      prisma.riderWithdrawal.findMany({
+        where: { riderId: user.userId },
+        orderBy: { requestedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.riderWithdrawal.count({
+        where: { riderId: user.userId },
+      }),
+    ]);
+
+    return paginatedResponse(c, { withdrawals }, page, limit, total);
+  } catch (error) {
+    console.error('Get withdrawals error:', error);
+    return errorResponse(c, 'Failed to fetch withdrawals', 500);
+  }
+});
+
+// GET /rider/withdrawals/pending - Get pending withdrawal if any
+app.get('/withdrawals/pending', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+
+    if (!user || user.type !== 'rider') {
+      return unauthorizedResponse(c, 'Rider authentication required');
+    }
+
+    const pendingWithdrawal = await prisma.riderWithdrawal.findFirst({
+      where: {
+        riderId: user.userId,
+        status: { in: ['PENDING', 'PROCESSING'] },
+      },
+      orderBy: { requestedAt: 'desc' },
+    });
+
+    // Return null if no pending withdrawal (not an error)
+    return successResponse(c, pendingWithdrawal);
+  } catch (error) {
+    console.error('Get pending withdrawal error:', error);
+    return errorResponse(c, 'Failed to fetch pending withdrawal', 500);
   }
 });
 

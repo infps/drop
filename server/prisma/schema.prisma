@@ -301,6 +301,7 @@ enum OrderStatus {
   CONFIRMED
   PREPARING
   READY_FOR_PICKUP
+  ASSIGNED
   PICKED_UP
   OUT_FOR_DELIVERY
   DELIVERED
@@ -397,6 +398,8 @@ model Rider {
   // Vehicle
   vehicleType         VehicleType
   vehicleNumber       String?
+  vehicleModel        String?
+  vehicleColor        String?
 
   // Status
   isOnline            Boolean      @default(false)
@@ -412,6 +415,14 @@ model Rider {
   // Zone
   assignedZone        String?
 
+  // Bank Details
+  bankAccount         String?
+  bankName            String?
+  bankBranch          String?
+  ifscCode            String?
+  accountHolderName   String?
+  panNumber           String?
+
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -419,6 +430,7 @@ model Rider {
   genieOrders         GenieOrder[]
   earnings            RiderEarning[]
   shifts              RiderShift[]
+  withdrawals         RiderWithdrawal[]
 }
 
 enum VehicleType {
@@ -457,6 +469,39 @@ model RiderShift {
   rider     Rider     @relation(fields: [riderId], references: [id], onDelete: Cascade)
 
   @@index([riderId])
+}
+
+model RiderWithdrawal {
+  id                String           @id @default(cuid())
+  riderId           String
+  amount            Float
+  status            WithdrawalStatus @default(PENDING)
+
+  // Bank details snapshot at time of request
+  bankAccount       String
+  ifscCode          String
+  accountHolderName String
+
+  // Transaction info
+  transactionId     String?
+  failureReason     String?
+
+  // Timestamps
+  requestedAt       DateTime         @default(now())
+  processedAt       DateTime?
+  completedAt       DateTime?
+
+  rider             Rider            @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@index([riderId])
+  @@index([status])
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 // ==================== PARTY MODE ====================

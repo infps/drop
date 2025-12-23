@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Colors } from '../../constants/theme';
 import { useAuth } from '../../hooks/use-auth';
 import { useRider } from '../../hooks/use-rider';
@@ -20,7 +22,7 @@ import { formatCurrency, formatOrderStatus } from '../../utils/formatting';
 export default function HomeScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { rider, isLoading: riderLoading, refresh } = useRider();
+  const { rider, isLoading: riderLoading, refresh, setOnlineStatus } = useRider();
   const { orders: activeOrders, fetchActiveOrders } = useOrders();
 
   useFocusEffect(
@@ -51,6 +53,16 @@ export default function HomeScreen() {
     router.push('/(tabs)/earnings');
   };
 
+  const handleToggleOnline = async () => {
+    if (!rider) return;
+    try {
+      await setOnlineStatus(!rider.isOnline);
+      await refresh();
+    } catch (error) {
+      console.error('Failed to toggle online status:', error);
+    }
+  };
+
   const onRefresh = async () => {
     await refresh();
     await fetchActiveOrders();
@@ -58,7 +70,7 @@ export default function HomeScreen() {
 
   if (riderLoading && !rider) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
+      <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: Colors.light.background }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6B6B" />
         </View>
@@ -67,7 +79,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: Colors.light.background }]}>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -78,7 +90,10 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.greetingSection}>
-            <Text style={styles.greeting}>Hello, {user?.name || 'Rider'}! 👋</Text>
+            <View style={styles.greetingRow}>
+              <Text style={styles.greeting}>Hello, {user?.name || 'Rider'}!</Text>
+              <MaterialIcons name="waving-hand" size={24} color="#FF6B6B" />
+            </View>
             <Text style={styles.subGreeting}>Ready to earn?</Text>
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
@@ -106,7 +121,7 @@ export default function HomeScreen() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.toggleButton}>
+              <TouchableOpacity style={styles.toggleButton} onPress={handleToggleOnline}>
                 <Text style={styles.toggleButtonText}>
                   {rider.isOnline ? 'Go Offline' : 'Go Online'}
                 </Text>
@@ -143,7 +158,9 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={handleViewOrders}
             >
-              <Text style={styles.actionIcon}>📦</Text>
+              <View style={styles.actionIconContainer}>
+                <MaterialIcons name="inbox" size={32} color="#FF6B6B" />
+              </View>
               <Text style={styles.actionTitle}>Available Orders</Text>
               <Text style={styles.actionSubText}>Browse & accept</Text>
             </TouchableOpacity>
@@ -151,7 +168,9 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={handleViewActive}
             >
-              <Text style={styles.actionIcon}>🚗</Text>
+              <View style={styles.actionIconContainer}>
+                <MaterialIcons name="local-shipping" size={32} color="#FF6B6B" />
+              </View>
               <Text style={styles.actionTitle}>Active Deliveries</Text>
               <Text style={styles.actionSubText}>
                 {activeOrders?.length || 0} orders
@@ -161,7 +180,9 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={handleViewEarnings}
             >
-              <Text style={styles.actionIcon}>💰</Text>
+              <View style={styles.actionIconContainer}>
+                <MaterialIcons name="account-balance-wallet" size={32} color="#FF6B6B" />
+              </View>
               <Text style={styles.actionTitle}>Today's Earnings</Text>
               <Text style={styles.actionSubText}>
                 {formatCurrency(rider?.totalEarnings || 0)}
@@ -171,7 +192,9 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => router.push('/(tabs)/profile')}
             >
-              <Text style={styles.actionIcon}>👤</Text>
+              <View style={styles.actionIconContainer}>
+                <MaterialIcons name="person" size={32} color="#FF6B6B" />
+              </View>
               <Text style={styles.actionTitle}>Your Profile</Text>
               <Text style={styles.actionSubText}>Edit details</Text>
             </TouchableOpacity>
@@ -180,7 +203,10 @@ export default function HomeScreen() {
 
         {/* Incentive Banner */}
         <View style={styles.incentiveSection}>
-          <Text style={styles.incentiveTitle}>🎁 Special Incentives</Text>
+          <View style={styles.incentiveTitleRow}>
+            <MaterialIcons name="card-giftcard" size={20} color="#fff" />
+            <Text style={styles.incentiveTitle}>Special Incentives</Text>
+          </View>
           <Text style={styles.incentiveText}>
             Complete 10 orders this week and earn ₹500 bonus!
           </Text>
@@ -201,13 +227,13 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Safety Tips</Text>
           <View style={styles.tipCard}>
-            <Text style={styles.tipIcon}>✅</Text>
+            <MaterialIcons name="check-circle" size={20} color="#4CAF50" style={styles.tipIcon} />
             <Text style={styles.tipText}>
               Always verify customer details before delivery
             </Text>
           </View>
           <View style={styles.tipCard}>
-            <Text style={styles.tipIcon}>📍</Text>
+            <MaterialIcons name="location-on" size={20} color="#FF6B6B" style={styles.tipIcon} />
             <Text style={styles.tipText}>
               Keep your location updated for better order matching
             </Text>
@@ -243,11 +269,16 @@ const styles = StyleSheet.create({
   greetingSection: {
     flex: 1,
   },
+  greetingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   greeting: {
     fontSize: 24,
     fontWeight: '700',
     color: Colors.light.text,
-    marginBottom: 4,
   },
   subGreeting: {
     fontSize: 14,
@@ -269,8 +300,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   statusContent: {
     flexDirection: 'row',
@@ -323,8 +363,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   statValue: {
     fontSize: 20,
@@ -358,11 +407,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  actionIcon: {
-    fontSize: 32,
+  actionIconContainer: {
     marginBottom: 8,
   },
   actionTitle: {
@@ -378,38 +435,52 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   incentiveSection: {
-    backgroundColor: '#FFE5F5',
+    backgroundColor: '#FF6B6B',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
-    borderLeftWidth: 4,
-    borderLeftColor: '#FF6B6B',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  incentiveTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
   incentiveTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.light.text,
-    marginBottom: 8,
+    color: '#fff',
   },
   incentiveText: {
     fontSize: 14,
-    color: Colors.light.text,
+    color: '#fff',
     marginBottom: 12,
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#FFD4E5',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#fff',
   },
   progressText: {
     fontSize: 12,
-    color: Colors.light.tabIconDefault,
+    color: '#fff',
   },
   tipCard: {
     flexDirection: 'row',
@@ -418,12 +489,20 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
-    borderLeftWidth: 3,
-    borderLeftColor: '#FF6B6B',
     gap: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   tipIcon: {
-    fontSize: 20,
     marginTop: 2,
   },
   tipText: {
