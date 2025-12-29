@@ -37,19 +37,26 @@ app.post('/', async (c) => {
       );
     }
 
-    // Check if user exists
+    // Check if user/vendor exists
     let isNewUser = false;
+    let isNewVendor = false;
     if (type === 'user') {
       const existingUser = await prisma.user.findUnique({
         where: { phone },
       });
       isNewUser = !existingUser;
+    } else if (type === 'vendor') {
+      const existingVendor = await prisma.vendor.findFirst({
+        where: { phone },
+      });
+      isNewVendor = !existingVendor;
     }
 
     // In development, include OTP in response for testing
     const response: Record<string, unknown> = {
       message: 'OTP sent successfully',
       isNewUser,
+      isNewVendor,
     };
 
     if (process.env.NODE_ENV === 'development') {

@@ -169,6 +169,52 @@ app.post('/', async (c) => {
           vehicleNumber: rider.vehicleNumber,
         },
       });
+    } else if (type === 'vendor') {
+      // Check if vendor exists
+      const vendor = await prisma.vendor.findFirst({
+        where: { phone },
+      });
+
+      if (!vendor) {
+        return errorResponse(c, 'Vendor not found. Please register first.', 404, 'Not Found');
+      }
+
+      // Update isVerified if not already verified
+      if (!vendor.isVerified) {
+        await prisma.vendor.update({
+          where: { id: vendor.id },
+          data: { isVerified: true },
+        });
+      }
+
+      const token = await generateToken({
+        userId: vendor.id,
+        phone: vendor.phone || undefined,
+        type: 'vendor',
+      }, '7d');
+
+      setCookie(c, 'vendor-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      });
+
+      return successResponse(c, {
+        message: vendor.isVerified ? 'Login successful' : 'Phone verified successfully',
+        token,
+        vendor: {
+          id: vendor.id,
+          phone: vendor.phone,
+          name: vendor.name,
+          email: vendor.email,
+          status: vendor.status,
+          type: vendor.type,
+          isVerified: true,
+          isActive: vendor.isActive,
+        },
+      });
     }
 
     return errorResponse(

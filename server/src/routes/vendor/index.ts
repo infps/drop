@@ -10,8 +10,12 @@ import {
   notFoundResponse,
 } from '../../middleware/response';
 import prisma from '../../lib/prisma';
+import registerRoute from './register';
 
 const app = new Hono();
+
+// Public routes (no auth required)
+app.route('/register', registerRoute);
 
 // GET /vendor/menu - Get vendor's menu items with categories
 app.get('/menu', async (c) => {
@@ -71,6 +75,58 @@ app.get('/menu', async (c) => {
   } catch (error) {
     console.error('Vendor menu GET error:', error);
     return errorResponse(c, 'Failed to fetch menu items', 500);
+  }
+});
+
+// GET /vendor/menu/categories - Get categories for vendor
+app.get('/menu/categories', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+    if (!user || user.type !== 'vendor') {
+      return unauthorizedResponse(c, 'Vendor access required');
+    }
+
+    const categories = await prisma.category.findMany({
+      where: { vendorId: user.userId },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, name: true, icon: true },
+    });
+
+    return successResponse(c, categories);
+  } catch (error) {
+    console.error('Get categories error:', error);
+    return errorResponse(c, 'Failed to fetch categories', 500);
+  }
+});
+
+// POST /vendor/menu/categories - Create category for vendor
+app.post('/menu/categories', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+    if (!user || user.type !== 'vendor') {
+      return unauthorizedResponse(c, 'Vendor access required');
+    }
+
+    const body = await c.req.json();
+    const { name, icon } = body;
+
+    if (!name) {
+      return badRequestResponse(c, 'Category name is required');
+    }
+
+    const category = await prisma.category.create({
+      data: {
+        name,
+        icon,
+        vendorId: user.userId,
+      },
+      select: { id: true, name: true, icon: true },
+    });
+
+    return successResponse(c, category, 'Category created', 201);
+  } catch (error) {
+    console.error('Create category error:', error);
+    return errorResponse(c, 'Failed to create category', 500);
   }
 });
 

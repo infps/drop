@@ -186,12 +186,10 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,

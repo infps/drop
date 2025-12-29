@@ -181,12 +181,10 @@ export default function EarningsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,
@@ -194,9 +192,6 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   tabsContainer: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   tabs: {
     paddingHorizontal: 16,
@@ -207,7 +202,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   tabActive: {
     backgroundColor: '#FF6B6B',

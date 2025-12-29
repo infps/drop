@@ -46,7 +46,7 @@ export default function HomeScreen() {
     }
   };
 
-  const pendingOrders = orders.filter((o) => o.status === 'PENDING');
+  const pendingOrders = (orders || []).filter((o) => o.status === 'PENDING');
 
   return (
     <SafeAreaView edges={['top']} style={styles.container}>
@@ -112,19 +112,19 @@ export default function HomeScreen() {
             <Text style={styles.statLabel}>Today's Orders</Text>
           </View>
           <View style={styles.statCard}>
-            <MaterialIcons name="currency-rupee" size={24} color="#4CAF50" />
+            <MaterialIcons name="currency-rupee" size={24} color="#FF6B6B" />
             <Text style={styles.statValue}>
               {formatCurrencyCompact(stats?.todayRevenue || 0)}
             </Text>
             <Text style={styles.statLabel}>Today's Revenue</Text>
           </View>
           <View style={styles.statCard}>
-            <MaterialIcons name="pending-actions" size={24} color="#FFA726" />
+            <MaterialIcons name="pending-actions" size={24} color="#FF6B6B" />
             <Text style={styles.statValue}>{stats?.activeOrders || 0}</Text>
             <Text style={styles.statLabel}>Active Orders</Text>
           </View>
           <View style={styles.statCard}>
-            <MaterialIcons name="star" size={24} color="#FFD700" />
+            <MaterialIcons name="star" size={24} color="#FF6B6B" />
             <Text style={styles.statValue}>{vendor?.rating?.toFixed(1) || '0.0'}</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
@@ -137,8 +137,8 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => router.push('/(tabs)/menu')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
-                <MaterialIcons name="add-circle" size={24} color="#2196F3" />
+              <View style={styles.actionIcon}>
+                <MaterialIcons name="add-circle" size={24} color="#FF6B6B" />
               </View>
               <Text style={styles.actionText}>Add Item</Text>
             </TouchableOpacity>
@@ -146,8 +146,8 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => router.push('/(rms)/dashboard')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#FFF3E0' }]}>
-                <MaterialIcons name="table-restaurant" size={24} color="#FF9800" />
+              <View style={styles.actionIcon}>
+                <MaterialIcons name="table-restaurant" size={24} color="#FF6B6B" />
               </View>
               <Text style={styles.actionText}>Dine-In</Text>
             </TouchableOpacity>
@@ -155,8 +155,8 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => router.push('/(screens)/analytics')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#E8F5E9' }]}>
-                <MaterialIcons name="analytics" size={24} color="#4CAF50" />
+              <View style={styles.actionIcon}>
+                <MaterialIcons name="analytics" size={24} color="#FF6B6B" />
               </View>
               <Text style={styles.actionText}>Analytics</Text>
             </TouchableOpacity>
@@ -164,8 +164,8 @@ export default function HomeScreen() {
               style={styles.actionCard}
               onPress={() => router.push('/(screens)/reviews')}
             >
-              <View style={[styles.actionIcon, { backgroundColor: '#FCE4EC' }]}>
-                <MaterialIcons name="rate-review" size={24} color="#E91E63" />
+              <View style={styles.actionIcon}>
+                <MaterialIcons name="rate-review" size={24} color="#FF6B6B" />
               </View>
               <Text style={styles.actionText}>Reviews</Text>
             </TouchableOpacity>
@@ -181,7 +181,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -189,7 +188,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#fff',
   },
   greeting: {
     fontSize: 14,
@@ -335,6 +333,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+    backgroundColor: '#FFE5E5',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,

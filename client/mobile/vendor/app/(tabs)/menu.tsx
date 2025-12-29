@@ -200,7 +200,7 @@ export default function MenuScreen() {
               All
             </Text>
           </TouchableOpacity>
-          {categories.map((category) => (
+          {categories?.map((category) => (
             <TouchableOpacity
               key={category.id}
               style={[
@@ -237,7 +237,7 @@ export default function MenuScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FF6B6B" />
           </View>
-        ) : items.length === 0 ? (
+        ) : (items?.length ?? 0) === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialIcons name="restaurant-menu" size={64} color="#ccc" />
             <Text style={styles.emptyText}>No menu items found</Text>
@@ -249,7 +249,7 @@ export default function MenuScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          items.map(renderMenuItem)
+          items?.map(renderMenuItem)
         )}
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -260,7 +260,6 @@ export default function MenuScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     flexDirection: 'row',
@@ -268,7 +267,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,
@@ -286,15 +284,25 @@ const styles = StyleSheet.create({
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
     borderRadius: 8,
     paddingHorizontal: 12,
     gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   searchInput: {
     flex: 1,
@@ -303,9 +311,6 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   categoriesContainer: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   categories: {
     paddingHorizontal: 16,
@@ -316,7 +321,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   categoryChipActive: {
     backgroundColor: '#FF6B6B',

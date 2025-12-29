@@ -24,6 +24,18 @@ export default function StoreSetupScreen() {
   const [minOrder, setMinOrder] = useState('100');
   const [deliveryRadius, setDeliveryRadius] = useState('5');
 
+  const fillTest = () => {
+    setAddress('123 Test Street, Test Area');
+    setCity('Mumbai');
+    setPincode('400001');
+    setLandmark('Near Test Mall');
+    setOpeningTime('09:00');
+    setClosingTime('22:00');
+    setPrepTime('30');
+    setMinOrder('100');
+    setDeliveryRadius('5');
+  };
+
   const handleNext = () => {
     router.push({
       pathname: '/(onboarding)/review',
@@ -61,8 +73,17 @@ export default function StoreSetupScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Store Setup</Text>
-        <Text style={styles.subtitle}>Location and operating details</Text>
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={styles.title}>Store Setup</Text>
+            <Text style={styles.subtitle}>Location and operating details</Text>
+          </View>
+          {__DEV__ && (
+            <TouchableOpacity style={styles.fillTestBtn} onPress={fillTest}>
+              <Text style={styles.fillTestText}>Fill Test</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Store Location</Text>
@@ -186,10 +207,6 @@ export default function StoreSetupScreen() {
           </View>
         </View>
 
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-
-      <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.nextBtn, !isValid && styles.nextBtnDisabled]}
           onPress={handleNext}
@@ -198,7 +215,9 @@ export default function StoreSetupScreen() {
           <Text style={styles.nextBtnText}>Review</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
-      </View>
+
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -250,7 +269,23 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 24,
+  },
+  fillTestBtn: {
+    backgroundColor: '#666',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  fillTestText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   section: {
     marginBottom: 24,
@@ -290,12 +325,7 @@ const styles = StyleSheet.create({
     height: 80,
   },
   bottomSpacing: {
-    height: 100,
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    height: 32,
   },
   nextBtn: {
     flexDirection: 'row',

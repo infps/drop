@@ -23,7 +23,7 @@ export const vendorService = {
   },
 
   async setOnlineStatus(isActive: boolean): Promise<void> {
-    await apiClient.patch('/vendor/profile', { isActive });
+    await apiClient.put('/vendor/profile', { isActive });
   },
 
   async register(data: VendorOnboardingData): Promise<{ message: string }> {

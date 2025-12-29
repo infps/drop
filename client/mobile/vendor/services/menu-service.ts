@@ -24,12 +24,32 @@ export const menuService = {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
     const url = `/vendor/menu${queryParams.toString() ? `?${queryParams}` : ''}`;
-    const response = await apiClient.get<MenuResponse>(url);
-    return response.data;
+    const response = await apiClient.get<any>(url);
+
+    // Also fetch categories
+    const categories = await this.getCategories();
+
+    // Server returns {data: [...], pagination: {...}}
+    const items = response.data || [];
+    const pagination = response.pagination || {};
+
+    return {
+      items,
+      categories,
+      page: pagination.page || 1,
+      limit: pagination.limit || 20,
+      total: pagination.total || items.length,
+      totalPages: pagination.totalPages || 1,
+    };
   },
 
   async getCategories(): Promise<Category[]> {
     const response = await apiClient.get<Category[]>('/vendor/menu/categories');
+    return response.data;
+  },
+
+  async createCategory(data: { name: string; icon?: string }): Promise<Category> {
+    const response = await apiClient.post<Category>('/vendor/menu/categories', data);
     return response.data;
   },
 

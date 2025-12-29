@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { getCurrentUser, getFullUser, getFullRider, getFullAdmin } from '../../lib/auth';
+import { getCurrentUser, getFullUser, getFullRider, getFullAdmin, getFullVendor } from '../../lib/auth';
 import { successResponse, errorResponse, unauthorizedResponse, notFoundResponse } from '../../middleware/response';
 
 const app = new Hono();
@@ -23,6 +23,9 @@ app.get('/', async (c) => {
         break;
       case 'admin':
         userData = await getFullAdmin(user.userId);
+        break;
+      case 'vendor':
+        userData = await getFullVendor(user.userId);
         break;
       default:
         return errorResponse(

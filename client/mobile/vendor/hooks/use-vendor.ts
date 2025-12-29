@@ -19,8 +19,9 @@ export const useVendor = () => {
       setIsLoading(true);
       setError(null);
       const data = await vendorService.getProfile();
-      setVendor(data.vendor);
-      setStats(data.stats);
+      const { stats, ...vendorData } = data;
+      setVendor(vendorData as Vendor);
+      setStats(stats);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch profile');
     } finally {
@@ -34,8 +35,9 @@ export const useVendor = () => {
         setIsLoading(true);
         setError(null);
         const response = await vendorService.updateProfile(data);
-        setVendor(response.vendor);
-        setStats(response.stats);
+        const { stats, ...vendorData } = response;
+        setVendor(vendorData as Vendor);
+        setStats(stats);
       } catch (err: any) {
         setError(err.message || 'Failed to update profile');
         throw err;

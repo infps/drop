@@ -62,6 +62,21 @@ export const useMenu = () => {
     }
   }, []);
 
+  const createCategory = useCallback(async (data: { name: string; icon?: string }) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const newCategory = await menuService.createCategory(data);
+      setCategories((prev) => [...prev, newCategory]);
+      return newCategory;
+    } catch (err: any) {
+      setError(err.message || 'Failed to create category');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const fetchMenuItem = useCallback(async (itemId: string) => {
     try {
       setIsLoading(true);
@@ -156,6 +171,7 @@ export const useMenu = () => {
     pagination,
     fetchMenu,
     fetchCategories,
+    createCategory,
     fetchMenuItem,
     createMenuItem,
     updateMenuItem,

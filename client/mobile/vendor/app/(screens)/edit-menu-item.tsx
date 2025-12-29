@@ -115,7 +115,7 @@ export default function EditMenuItemScreen() {
         <View style={styles.formGroup}>
           <Text style={styles.label}>Category *</Text>
           <View style={styles.categoryGrid}>
-            {categories.map((cat) => (
+            {categories?.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 style={[

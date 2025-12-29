@@ -19,6 +19,13 @@ export default function OwnerDetailsScreen() {
   const [alternatePhone, setAlternatePhone] = useState('');
   const [email, setEmail] = useState('');
 
+  const fillTest = () => {
+    setOwnerName('Test Owner');
+    setPhone('9876543210');
+    setAlternatePhone('9876543211');
+    setEmail('test@vendor.com');
+  };
+
   const handleNext = () => {
     router.push({
       pathname: '/(onboarding)/documents',
@@ -51,8 +58,17 @@ export default function OwnerDetailsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Owner Details</Text>
-        <Text style={styles.subtitle}>Contact information for your account</Text>
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={styles.title}>Owner Details</Text>
+            <Text style={styles.subtitle}>Contact information for your account</Text>
+          </View>
+          {__DEV__ && (
+            <TouchableOpacity style={styles.fillTestBtn} onPress={fillTest}>
+              <Text style={styles.fillTestText}>Fill Test</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Full Name *</Text>
@@ -113,10 +129,6 @@ export default function OwnerDetailsScreen() {
           </Text>
         </View>
 
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-
-      <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.nextBtn, !isValid && styles.nextBtnDisabled]}
           onPress={handleNext}
@@ -125,7 +137,9 @@ export default function OwnerDetailsScreen() {
           <Text style={styles.nextBtnText}>Next</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
-      </View>
+
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -177,7 +191,23 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 24,
+  },
+  fillTestBtn: {
+    backgroundColor: '#666',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  fillTestText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   formGroup: {
     marginBottom: 24,
@@ -217,18 +247,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  phoneVerified: {
+    backgroundColor: '#f0fff0',
+    borderColor: '#4CAF50',
+  },
+  phoneText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 12,
+  },
   helperText: {
     fontSize: 12,
     color: '#999',
     marginTop: 4,
   },
   bottomSpacing: {
-    height: 100,
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    height: 32,
   },
   nextBtn: {
     flexDirection: 'row',

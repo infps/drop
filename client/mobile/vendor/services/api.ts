@@ -3,12 +3,12 @@ import axios, {
   AxiosError,
   AxiosResponse,
   InternalAxiosRequestConfig,
-} from 'axios';
-import * as SecureStore from 'expo-secure-store';
-import { ApiResponse, ApiError } from '../types';
+} from "axios";
+import * as SecureStore from "expo-secure-store";
+import { ApiResponse, ApiError } from "../types";
 
 const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1';
+  process.env.EXPO_PUBLIC_API_BASE_URL || "http://localhost:3000/api/v1";
 
 class ApiClient {
   private api: AxiosInstance;
@@ -19,7 +19,7 @@ class ApiClient {
       baseURL: API_BASE_URL,
       timeout: 30000,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
@@ -31,7 +31,7 @@ class ApiClient {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error) => Promise.reject(error),
     );
 
     this.api.interceptors.response.use(
@@ -41,17 +41,17 @@ class ApiClient {
           await this.clearToken();
         }
         return Promise.reject(this.formatError(error));
-      }
+      },
     );
   }
 
   async getToken(): Promise<string | null> {
     try {
       if (this.token) return this.token;
-      this.token = await SecureStore.getItemAsync('vendor_token');
+      this.token = await SecureStore.getItemAsync("vendor_token");
       return this.token;
     } catch (error) {
-      console.error('Error retrieving token:', error);
+      console.error("Error retrieving token:", error);
       return null;
     }
   }
@@ -59,18 +59,18 @@ class ApiClient {
   async setToken(token: string): Promise<void> {
     try {
       this.token = token;
-      await SecureStore.setItemAsync('vendor_token', token);
+      await SecureStore.setItemAsync("vendor_token", token);
     } catch (error) {
-      console.error('Error setting token:', error);
+      console.error("Error setting token:", error);
     }
   }
 
   async clearToken(): Promise<void> {
     try {
       this.token = null;
-      await SecureStore.deleteItemAsync('vendor_token');
+      await SecureStore.deleteItemAsync("vendor_token");
     } catch (error) {
-      console.error('Error clearing token:', error);
+      console.error("Error clearing token:", error);
     }
   }
 
@@ -80,7 +80,7 @@ class ApiClient {
     const statusCode = error.response?.status;
     const fullDetails = error.response?.data;
 
-    console.error('API Error:', {
+    console.error("API Error:", {
       message: errorMessage,
       code: errorCode,
       statusCode: statusCode,
@@ -99,7 +99,7 @@ class ApiClient {
     try {
       const response: AxiosResponse<ApiResponse<T>> = await this.api.get(
         url,
-        config
+        config,
       );
       return response.data;
     } catch (error) {
@@ -107,12 +107,16 @@ class ApiClient {
     }
   }
 
-  async post<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+  async post<T>(
+    url: string,
+    data?: any,
+    config?: any,
+  ): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<ApiResponse<T>> = await this.api.post(
         url,
         data,
-        config
+        config,
       );
       return response.data;
     } catch (error) {
@@ -125,7 +129,7 @@ class ApiClient {
       const response: AxiosResponse<ApiResponse<T>> = await this.api.put(
         url,
         data,
-        config
+        config,
       );
       return response.data;
     } catch (error) {
@@ -133,12 +137,16 @@ class ApiClient {
     }
   }
 
-  async patch<T>(url: string, data?: any, config?: any): Promise<ApiResponse<T>> {
+  async patch<T>(
+    url: string,
+    data?: any,
+    config?: any,
+  ): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<ApiResponse<T>> = await this.api.patch(
         url,
         data,
-        config
+        config,
       );
       return response.data;
     } catch (error) {
@@ -150,7 +158,7 @@ class ApiClient {
     try {
       const response: AxiosResponse<ApiResponse<T>> = await this.api.delete(
         url,
-        config
+        config,
       );
       return response.data;
     } catch (error) {

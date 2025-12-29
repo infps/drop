@@ -190,6 +190,17 @@ export async function getFullAdmin(adminId: string) {
   });
 }
 
+// Get full vendor from database
+export async function getFullVendor(vendorId: string) {
+  return prisma.vendor.findUnique({
+    where: { id: vendorId },
+    include: {
+      outlets: true,
+      products: { take: 10 },
+    },
+  });
+}
+
 // Cleanup expired OTPs periodically (run this on a schedule)
 export function cleanupExpiredOTPs(): void {
   const now = new Date();

@@ -95,6 +95,33 @@ model Vendor {
   licenseNumber   String?
   licenseExpiry   DateTime?
 
+  // Registration status
+  status          VendorStatus @default(PENDING)
+
+  // Owner info
+  ownerName       String?
+  phone           String?      @unique
+  alternatePhone  String?
+  email           String?      @unique
+
+  // Documents
+  gstNumber       String?
+  fssaiNumber     String?
+  panNumber       String?
+
+  // Banking
+  bankAccount     String?
+  ifscCode        String?
+
+  // Additional location
+  city            String?
+  pincode         String?
+  landmark        String?
+
+  // Menu
+  cuisineTypes    String[]
+  avgPrepTime     Int          @default(30)
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -118,6 +145,13 @@ enum VendorType {
   PET_SUPPLIES
   FLOWERS
   GENERAL_STORE
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
 }
 
 model Category {

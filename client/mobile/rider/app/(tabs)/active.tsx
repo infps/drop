@@ -134,7 +134,7 @@ export default function ActiveScreen() {
     if (paymentMethod === 'COD') {
       Alert.alert(
         'Collect Payment',
-        `Have you collected ₹${orders.find(o => o.id === orderId)?.total?.toFixed(2) || '0.00'} from the customer?`,
+        `Have you collected ₹${orders?.find(o => o.id === orderId)?.total?.toFixed(2) || '0.00'} from the customer?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {

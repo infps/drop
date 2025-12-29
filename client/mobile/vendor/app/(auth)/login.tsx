@@ -28,6 +28,11 @@ export default function LoginScreen() {
     }
   };
 
+  const fillTest = () => {
+    setPhone('9876543210');
+    setIsValid(true);
+  };
+
   const handleContinue = async () => {
     if (!isValid) {
       Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number');
@@ -52,7 +57,14 @@ export default function LoginScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.light.background }]}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.logo}>🏪 Drop</Text>
+          <View style={styles.logoRow}>
+            <Text style={styles.logo}>🏪 Drop</Text>
+            {__DEV__ && (
+              <TouchableOpacity style={styles.fillTestBtn} onPress={fillTest}>
+                <Text style={styles.fillTestText}>Fill Test</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <Text style={styles.title}>Vendor App</Text>
           <Text style={styles.subtitle}>Manage your store on the go</Text>
         </View>
@@ -137,9 +149,26 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: 60,
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   logo: {
     fontSize: 48,
     marginBottom: 16,
+  },
+  fillTestBtn: {
+    backgroundColor: '#666',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+    marginBottom: 16,
+  },
+  fillTestText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   title: {
     fontSize: 28,

@@ -9,6 +9,7 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -16,7 +17,7 @@ import { useMenu } from '../../hooks/use-menu';
 
 export default function AddMenuItemScreen() {
   const router = useRouter();
-  const { categories, fetchCategories, createMenuItem, isLoading } = useMenu();
+  const { categories, fetchCategories, createMenuItem, createCategory, isLoading } = useMenu();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -26,10 +27,24 @@ export default function AddMenuItemScreen() {
   const [isVeg, setIsVeg] = useState(true);
   const [inStock, setInStock] = useState(true);
   const [prepTime, setPrepTime] = useState('');
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      const cat = await createCategory({ name: newCategoryName.trim() });
+      setCategoryId(cat.id);
+      setNewCategoryName('');
+      setShowAddCategory(false);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to create category');
+    }
+  };
 
   const handleSubmit = async () => {
     if (!name || !categoryId || !price) {
@@ -88,7 +103,7 @@ export default function AddMenuItemScreen() {
         <View style={styles.formGroup}>
           <Text style={styles.label}>Category *</Text>
           <View style={styles.categoryGrid}>
-            {categories.map((cat) => (
+            {categories?.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 style={[
@@ -107,7 +122,38 @@ export default function AddMenuItemScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
+            <TouchableOpacity
+              style={styles.addCategoryChip}
+              onPress={() => setShowAddCategory(true)}
+            >
+              <MaterialIcons name="add" size={18} color="#FF6B6B" />
+              <Text style={styles.addCategoryText}>Add</Text>
+            </TouchableOpacity>
           </View>
+          {showAddCategory && (
+            <View style={styles.addCategoryRow}>
+              <TextInput
+                style={styles.addCategoryInput}
+                placeholder="Category name"
+                placeholderTextColor="#999"
+                value={newCategoryName}
+                onChangeText={setNewCategoryName}
+                autoFocus
+              />
+              <TouchableOpacity style={styles.addCategoryBtn} onPress={handleAddCategory}>
+                <MaterialIcons name="check" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelCategoryBtn}
+                onPress={() => {
+                  setShowAddCategory(false);
+                  setNewCategoryName('');
+                }}
+              >
+                <MaterialIcons name="close" size={20} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={styles.row}>
@@ -199,7 +245,6 @@ export default function AddMenuItemScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   form: {
     padding: 16,
@@ -218,13 +263,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#fff',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 16,
     color: '#333',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   textArea: {
     height: 80,
@@ -238,7 +293,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   categoryChipActive: {
     backgroundColor: '#FF6B6B',
@@ -251,13 +317,65 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
+  addCategoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+    borderStyle: 'dashed',
+    gap: 4,
+  },
+  addCategoryText: {
+    fontSize: 14,
+    color: '#FF6B6B',
+  },
+  addCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  addCategoryInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#333',
+  },
+  addCategoryBtn: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 8,
+    padding: 10,
+  },
+  cancelCategoryBtn: {
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    padding: 10,
+  },
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   toggleInfo: {},
   toggleLabel: {

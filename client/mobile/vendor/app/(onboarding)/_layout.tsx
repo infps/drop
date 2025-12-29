@@ -8,6 +8,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="documents" />
       <Stack.Screen name="store-setup" />
       <Stack.Screen name="review" />
+      <Stack.Screen name="phone-verify" />
     </Stack>
   );
 }

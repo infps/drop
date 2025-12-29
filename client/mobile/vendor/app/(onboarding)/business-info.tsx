@@ -29,6 +29,13 @@ export default function BusinessInfoScreen() {
     );
   };
 
+  const fillTest = () => {
+    setBusinessName('Test Restaurant');
+    setBusinessType('RESTAURANT');
+    setSelectedCuisines(['North Indian', 'Chinese']);
+    setDescription('A test restaurant for development');
+  };
+
   const handleNext = () => {
     router.push({
       pathname: '/(onboarding)/owner-details',
@@ -60,8 +67,17 @@ export default function BusinessInfoScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Business Information</Text>
-        <Text style={styles.subtitle}>Tell us about your store</Text>
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={styles.title}>Business Information</Text>
+            <Text style={styles.subtitle}>Tell us about your store</Text>
+          </View>
+          {__DEV__ && (
+            <TouchableOpacity style={styles.fillTestBtn} onPress={fillTest}>
+              <Text style={styles.fillTestText}>Fill Test</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Business Name *</Text>
@@ -141,10 +157,6 @@ export default function BusinessInfoScreen() {
           />
         </View>
 
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
-
-      <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.nextBtn, !isValid && styles.nextBtnDisabled]}
           onPress={handleNext}
@@ -153,7 +165,9 @@ export default function BusinessInfoScreen() {
           <Text style={styles.nextBtnText}>Next</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
-      </View>
+
+        <View style={styles.bottomSpacing} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -199,7 +213,23 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 24,
+  },
+  fillTestBtn: {
+    backgroundColor: '#666',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  fillTestText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   formGroup: {
     marginBottom: 24,
@@ -218,6 +248,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: '#333',
+    textAlign: 'left',
+    letterSpacing: 0,
   },
   textArea: {
     height: 100,
@@ -270,12 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomSpacing: {
-    height: 100,
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    height: 32,
   },
   nextBtn: {
     flexDirection: 'row',

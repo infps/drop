@@ -225,13 +225,13 @@ export default function OrdersScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#FF6B6B" />
           </View>
-        ) : orders.length === 0 ? (
+        ) : (orders?.length ?? 0) === 0 ? (
           <View style={styles.emptyContainer}>
             <MaterialIcons name="inbox" size={64} color="#ccc" />
             <Text style={styles.emptyText}>No orders found</Text>
           </View>
         ) : (
-          orders.map(renderOrderCard)
+          orders?.map(renderOrderCard)
         )}
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -242,12 +242,10 @@ export default function OrdersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 24,
@@ -255,9 +253,6 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   tabsContainer: {
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   tabs: {
     paddingHorizontal: 16,
@@ -268,7 +263,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
   },
   tabActive: {
     backgroundColor: '#FF6B6B',

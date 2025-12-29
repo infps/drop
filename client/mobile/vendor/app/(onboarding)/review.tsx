@@ -1,63 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { vendorService } from '../../services/vendor-service';
 
 export default function ReviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      await vendorService.register({
-        businessName: params.businessName as string,
-        businessType: params.businessType as any,
-        cuisineTypes: (params.cuisines as string)?.split(',') || [],
-        description: params.description as string,
-        ownerName: params.ownerName as string,
-        phone: params.phone as string,
-        alternatePhone: params.alternatePhone as string,
-        email: params.email as string,
-        gstNumber: params.gstNumber as string,
-        fssaiNumber: params.fssaiNumber as string,
-        panNumber: params.panNumber as string,
-        bankAccount: params.bankAccount as string,
-        ifscCode: params.ifscCode as string,
-        address: params.address as string,
-        city: params.city as string,
-        pincode: params.pincode as string,
-        landmark: params.landmark as string,
-        latitude: 0,
-        longitude: 0,
-        openingTime: params.openingTime as string,
-        closingTime: params.closingTime as string,
-        avgPrepTime: parseInt(params.prepTime as string) || 30,
-        minimumOrder: parseInt(params.minOrder as string) || 100,
-        deliveryRadius: parseInt(params.deliveryRadius as string) || 5,
-      });
-
-      Alert.alert(
-        'Application Submitted',
-        'We will review your application and contact you within 24-48 hours.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
-      );
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to submit application');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleContinue = () => {
+    router.push({
+      pathname: '/(onboarding)/phone-verify',
+      params,
+    });
   };
 
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
@@ -135,25 +96,16 @@ export default function ReviewScreen() {
           </Text>
         </View>
 
+        <TouchableOpacity
+          style={styles.submitBtn}
+          onPress={handleContinue}
+        >
+          <Text style={styles.submitBtnText}>Continue to Verify Phone</Text>
+          <MaterialIcons name="arrow-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+
         <View style={styles.bottomSpacing} />
       </ScrollView>
-
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Text style={styles.submitBtnText}>Submit Application</Text>
-              <MaterialIcons name="check" size={20} color="#fff" />
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -255,12 +207,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bottomSpacing: {
-    height: 100,
-  },
-  footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+    height: 32,
   },
   submitBtn: {
     flexDirection: 'row',
