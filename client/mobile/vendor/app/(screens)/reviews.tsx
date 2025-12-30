@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,23 +7,66 @@ import {
   TouchableOpacity,
   TextInput,
   Platform,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import api from '../../lib/api';
+import { formatDistanceToNow } from 'date-fns';
 
-const MOCK_REVIEWS = [
-  { id: '1', user: 'John D.', rating: 5, comment: 'Excellent food and fast delivery!', date: '2 days ago', reply: null },
-  { id: '2', user: 'Sarah M.', rating: 4, comment: 'Good taste but portion could be bigger.', date: '3 days ago', reply: 'Thank you for your feedback!' },
-  { id: '3', user: 'Mike R.', rating: 5, comment: 'Best biryani in town!', date: '1 week ago', reply: null },
-];
+interface Review {
+  id: string;
+  user: { name: string; avatar?: string };
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
 
 export default function ReviewsScreen() {
+  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmitReply = (reviewId: string) => {
-    console.log('Reply to', reviewId, ':', replyText);
-    setReplyingTo(null);
-    setReplyText('');
+  const fetchReviews = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/vendor/reviews');
+      if (res.data.status === 'success') {
+        setReviews(res.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch reviews:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchReviews();
+    }, [fetchReviews])
+  );
+
+  const handleSubmitReply = async (reviewId: string) => {
+    if (!replyText.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const res = await api.post(`/vendor/reviews/${reviewId}/reply`, { reply: replyText });
+      if (res.data.status === 'success') {
+        Alert.alert('Success', 'Reply posted');
+        setReplyingTo(null);
+        setReplyText('');
+        fetchReviews();
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to post reply');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -37,86 +80,99 @@ export default function ReviewsScreen() {
     ));
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color="#FF6B6B" />
+      </View>
+    );
+  }
+
+  const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.summaryCard}>
-        <View style={styles.ratingBox}>
-          <Text style={styles.ratingValue}>4.6</Text>
-          <View style={styles.starsRow}>{renderStars(5)}</View>
-          <Text style={styles.ratingCount}>245 reviews</Text>
+      {reviews.length > 0 && (
+        <View style={styles.summaryCard}>
+          <View style={styles.ratingBox}>
+            <Text style={styles.ratingValue}>{avgRating.toFixed(1)}</Text>
+            <View style={styles.starsRow}>{renderStars(Math.round(avgRating))}</View>
+            <Text style={styles.ratingCount}>{reviews.length} reviews</Text>
+          </View>
         </View>
-        <View style={styles.ratingBars}>
-          {[5, 4, 3, 2, 1].map((star) => (
-            <View key={star} style={styles.ratingBarRow}>
-              <Text style={styles.starLabel}>{star}</Text>
-              <View style={styles.barBg}>
-                <View
-                  style={[
-                    styles.barFill,
-                    { width: `${star === 5 ? 70 : star === 4 ? 20 : 10}%` },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
+      )}
 
       <View style={styles.reviewsList}>
-        {MOCK_REVIEWS.map((review) => (
-          <View key={review.id} style={styles.reviewCard}>
-            <View style={styles.reviewHeader}>
-              <View style={styles.userInfo}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{review.user[0]}</Text>
-                </View>
-                <View>
-                  <Text style={styles.userName}>{review.user}</Text>
-                  <Text style={styles.reviewDate}>{review.date}</Text>
-                </View>
-              </View>
-              <View style={styles.starsRow}>{renderStars(review.rating)}</View>
-            </View>
-            <Text style={styles.reviewComment}>{review.comment}</Text>
+        {reviews.length > 0 ? (
+          reviews.map((review) => {
+            const hasReply = review.comment?.includes('[Vendor Reply]');
+            const [mainComment, vendorReply] = hasReply
+              ? review.comment.split('\n\n[Vendor Reply]: ')
+              : [review.comment, null];
 
-            {review.reply ? (
-              <View style={styles.replyBox}>
-                <Text style={styles.replyLabel}>Your reply:</Text>
-                <Text style={styles.replyText}>{review.reply}</Text>
-              </View>
-            ) : replyingTo === review.id ? (
-              <View style={styles.replyInputBox}>
-                <TextInput
-                  style={styles.replyInput}
-                  placeholder="Write your reply..."
-                  placeholderTextColor="#999"
-                  value={replyText}
-                  onChangeText={setReplyText}
-                  multiline
-                />
-                <View style={styles.replyActions}>
-                  <TouchableOpacity onPress={() => setReplyingTo(null)}>
-                    <Text style={styles.cancelBtn}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.submitReplyBtn}
-                    onPress={() => handleSubmitReply(review.id)}
-                  >
-                    <Text style={styles.submitReplyText}>Reply</Text>
-                  </TouchableOpacity>
+            return (
+              <View key={review.id} style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <View style={styles.userInfo}>
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{review.user.name[0]}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.userName}>{review.user.name}</Text>
+                      <Text style={styles.reviewDate}>
+                        {formatDistanceToNow(new Date(review.createdAt))} ago
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.starsRow}>{renderStars(review.rating)}</View>
                 </View>
+                <Text style={styles.reviewComment}>{mainComment}</Text>
+
+                {vendorReply ? (
+                  <View style={styles.replyBox}>
+                    <Text style={styles.replyLabel}>Your reply:</Text>
+                    <Text style={styles.replyText}>{vendorReply}</Text>
+                  </View>
+                ) : replyingTo === review.id ? (
+                  <View style={styles.replyInputBox}>
+                    <TextInput
+                      style={styles.replyInput}
+                      placeholder="Write your reply..."
+                      placeholderTextColor="#999"
+                      value={replyText}
+                      onChangeText={setReplyText}
+                      multiline
+                    />
+                    <View style={styles.replyActions}>
+                      <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                        <Text style={styles.cancelBtn}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.submitReplyBtn}
+                        onPress={() => handleSubmitReply(review.id)}
+                        disabled={submitting}
+                      >
+                        <Text style={styles.submitReplyText}>
+                          {submitting ? 'Posting...' : 'Reply'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.replyBtn}
+                    onPress={() => setReplyingTo(review.id)}
+                  >
+                    <MaterialIcons name="reply" size={16} color="#FF6B6B" />
+                    <Text style={styles.replyBtnText}>Reply</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.replyBtn}
-                onPress={() => setReplyingTo(review.id)}
-              >
-                <MaterialIcons name="reply" size={16} color="#FF6B6B" />
-                <Text style={styles.replyBtnText}>Reply</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ))}
+            );
+          })
+        ) : (
+          <Text style={styles.emptyText}>No reviews yet</Text>
+        )}
       </View>
 
       <View style={styles.bottomSpacing} />
@@ -125,10 +181,22 @@ export default function ReviewsScreen() {
 }
 
 const styles = StyleSheet.create({
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
     padding: 16,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    paddingVertical: 40,
+    fontSize: 14,
   },
   summaryCard: {
     flexDirection: 'row',

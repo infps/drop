@@ -42,7 +42,7 @@ app.get('/menu', async (c) => {
     const where: any = { vendorId: vendor.id };
 
     if (category) {
-      where.category = category;
+      where.categoryId = category;
     }
 
     if (search) {
@@ -223,6 +223,50 @@ app.put('/menu/:id', async (c) => {
     return successResponse(c, product, 'Menu item updated successfully');
   } catch (error) {
     console.error('Vendor menu PUT error:', error);
+    return errorResponse(c, 'Failed to update menu item', 500);
+  }
+});
+
+// PATCH /vendor/menu/:id - Update menu item (partial)
+app.patch('/menu/:id', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+    if (!user || user.type !== 'vendor') {
+      return unauthorizedResponse(c, 'Vendor access required');
+    }
+
+    const vendor = await prisma.vendor.findFirst({
+      where: { id: user.userId },
+    });
+
+    if (!vendor) {
+      return notFoundResponse(c, 'Vendor not found');
+    }
+
+    const id = c.req.param('id');
+    const body = await c.req.json();
+
+    if (!id) {
+      return badRequestResponse(c, 'Product ID is required');
+    }
+
+    // Verify product belongs to vendor
+    const existingProduct = await prisma.product.findFirst({
+      where: { id, vendorId: vendor.id },
+    });
+
+    if (!existingProduct) {
+      return notFoundResponse(c, 'Product not found');
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data: body,
+    });
+
+    return successResponse(c, product, 'Menu item updated successfully');
+  } catch (error) {
+    console.error('Vendor menu PATCH error:', error);
     return errorResponse(c, 'Failed to update menu item', 500);
   }
 });
@@ -588,6 +632,201 @@ app.get('/profile', async (c) => {
   }
 });
 
+// GET /vendor/reviews - Get vendor reviews
+app.get('/reviews', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+    if (!user || user.type !== 'vendor') {
+      return unauthorizedResponse(c, 'Vendor access required');
+    }
+
+    const { page, limit, skip } = getPaginationParams(c);
+
+    const where = { vendorId: user.userId };
+
+    const [reviews, total] = await Promise.all([
+      prisma.review.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, name: true, avatar: true },
+          },
+        },
+      }),
+      prisma.review.count({ where }),
+    ]);
+
+    return paginatedResponse(c, reviews, page, limit, total);
+  } catch (error) {
+    console.error('Get vendor reviews error:', error);
+    return errorResponse(c, 'Failed to fetch reviews', 500);
+  }
+});
+
+// POST /vendor/reviews/:id/reply - Reply to review (stored in review comment)
+app.post('/reviews/:id/reply', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+    if (!user || user.type !== 'vendor') {
+      return unauthorizedResponse(c, 'Vendor access required');
+    }
+
+    const reviewId = c.req.param('id');
+    const body = await c.req.json();
+    const { reply } = body;
+
+    if (!reply) {
+      return badRequestResponse(c, 'Reply text is required');
+    }
+
+    const review = await prisma.review.findFirst({
+      where: { id: reviewId, vendorId: user.userId },
+    });
+
+    if (!review) {
+      return notFoundResponse(c, 'Review not found');
+    }
+
+    // For now, append reply to comment. Better to add vendorReply field to schema later
+    const updatedReview = await prisma.review.update({
+      where: { id: reviewId },
+      data: {
+        comment: review.comment + `\n\n[Vendor Reply]: ${reply}`,
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, avatar: true },
+        },
+      },
+    });
+
+    return successResponse(c, updatedReview, 'Reply posted successfully');
+  } catch (error) {
+    console.error('Post review reply error:', error);
+    return errorResponse(c, 'Failed to post reply', 500);
+  }
+});
+
+// GET /vendor/analytics - Get vendor analytics
+app.get('/analytics', async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+    if (!user || user.type !== 'vendor') {
+      return unauthorizedResponse(c, 'Vendor access required');
+    }
+
+    const vendor = await prisma.vendor.findUnique({
+      where: { id: user.userId },
+    });
+
+    if (!vendor) {
+      return notFoundResponse(c, 'Vendor not found');
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const thisWeekStart = new Date();
+    thisWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+    const lastWeekStart = new Date();
+    lastWeekStart.setDate(lastWeekStart.getDate() - 14);
+
+    const [thisWeekOrders, lastWeekOrders, thisWeekRevenue, lastWeekRevenue, topItems, avgPrepTime, orderAcceptanceRate] = await Promise.all([
+      prisma.order.count({
+        where: {
+          vendorId: user.userId,
+          createdAt: { gte: thisWeekStart },
+        },
+      }),
+      prisma.order.count({
+        where: {
+          vendorId: user.userId,
+          createdAt: { gte: lastWeekStart, lt: thisWeekStart },
+        },
+      }),
+      prisma.order.aggregate({
+        where: {
+          vendorId: user.userId,
+          status: 'DELIVERED',
+          deliveredAt: { gte: thisWeekStart },
+        },
+        _sum: { subtotal: true },
+      }),
+      prisma.order.aggregate({
+        where: {
+          vendorId: user.userId,
+          status: 'DELIVERED',
+          deliveredAt: { gte: lastWeekStart, lt: thisWeekStart },
+        },
+        _sum: { subtotal: true },
+      }),
+      prisma.orderItem.groupBy({
+        by: ['productId'],
+        where: {
+          order: { vendorId: user.userId, status: 'DELIVERED' },
+        },
+        _count: { productId: true },
+        _sum: { quantity: true, price: true },
+        orderBy: { _count: { productId: 'desc' } },
+        take: 5,
+      }),
+      prisma.order.aggregate({
+        where: { vendorId: user.userId, status: 'DELIVERED' },
+        _avg: { avgDeliveryTime: true },
+      }),
+      prisma.order.count({
+        where: { vendorId: user.userId, status: { not: 'CANCELLED' } },
+      }),
+    ]);
+
+    const totalOrders = await prisma.order.count({ where: { vendorId: user.userId } });
+    const acceptanceRate = totalOrders > 0 ? ((orderAcceptanceRate / totalOrders) * 100).toFixed(0) : 0;
+
+    const productIds = topItems.map((item) => item.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true },
+    });
+
+    const topItemsWithNames = topItems.map((item) => {
+      const product = products.find((p) => p.id === item.productId);
+      return {
+        name: product?.name || 'Unknown',
+        orders: item._count.productId,
+        revenue: item._sum.price || 0,
+      };
+    });
+
+    const thisWeekRev = thisWeekRevenue._sum.subtotal || 0;
+    const lastWeekRev = lastWeekRevenue._sum.subtotal || 0;
+    const revenueChange = lastWeekRev > 0 ? (((thisWeekRev - lastWeekRev) / lastWeekRev) * 100).toFixed(0) : 0;
+
+    const orderChange = lastWeekOrders > 0 ? (((thisWeekOrders - lastWeekOrders) / lastWeekOrders) * 100).toFixed(0) : 0;
+
+    const avgOrderValue = thisWeekOrders > 0 ? (thisWeekRev / thisWeekOrders).toFixed(0) : 0;
+
+    return successResponse(c, {
+      thisWeekRevenue: thisWeekRev,
+      revenueChange: `${revenueChange >= 0 ? '+' : ''}${revenueChange}%`,
+      thisWeekOrders,
+      orderChange: `${orderChange >= 0 ? '+' : ''}${orderChange}%`,
+      avgOrderValue,
+      rating: vendor.rating,
+      totalReviews: vendor.totalRatings,
+      topItems: topItemsWithNames,
+      avgPrepTime: avgPrepTime._avg.avgDeliveryTime || 0,
+      acceptanceRate: `${acceptanceRate}%`,
+    });
+  } catch (error) {
+    console.error('Get vendor analytics error:', error);
+    return errorResponse(c, 'Failed to fetch analytics', 500);
+  }
+});
+
 // PUT /vendor/profile - Update vendor profile
 app.put('/profile', async (c) => {
   try {
@@ -610,6 +849,7 @@ app.put('/profile', async (c) => {
       openingTime,
       closingTime,
       minimumOrder,
+      deliveryRadius,
       avgDeliveryTime,
       isActive,
       cuisineTypes,
@@ -633,6 +873,7 @@ app.put('/profile', async (c) => {
     if (openingTime !== undefined) updateData.openingTime = openingTime;
     if (closingTime !== undefined) updateData.closingTime = closingTime;
     if (minimumOrder !== undefined) updateData.minimumOrder = minimumOrder;
+    if (deliveryRadius !== undefined) updateData.deliveryRadius = deliveryRadius;
     if (avgDeliveryTime !== undefined) updateData.avgDeliveryTime = avgDeliveryTime;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (cuisineTypes !== undefined) updateData.cuisineTypes = cuisineTypes;
@@ -644,9 +885,63 @@ app.put('/profile', async (c) => {
     const vendor = await prisma.vendor.update({
       where: { id: user.userId },
       data: updateData,
+      include: {
+        _count: {
+          select: {
+            products: true,
+            orders: true,
+            reviews: true,
+          },
+        },
+      },
     });
 
-    return successResponse(c, vendor, 'Profile updated successfully');
+    // Get stats
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [todayOrders, activeOrders, todayRevenue] = await Promise.all([
+      prisma.order.count({
+        where: {
+          vendorId: user.userId,
+          createdAt: {
+            gte: today,
+          },
+        },
+      }),
+      prisma.order.count({
+        where: {
+          vendorId: user.userId,
+          status: {
+            in: ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP'],
+          },
+        },
+      }),
+      prisma.order.aggregate({
+        where: {
+          vendorId: user.userId,
+          status: 'DELIVERED',
+          deliveredAt: {
+            gte: today,
+          },
+        },
+        _sum: {
+          subtotal: true,
+        },
+      }),
+    ]);
+
+    return successResponse(c, {
+      ...vendor,
+      stats: {
+        todayOrders,
+        activeOrders,
+        todayRevenue: todayRevenue._sum.subtotal || 0,
+        totalProducts: vendor._count.products,
+        totalOrders: vendor._count.orders,
+        totalReviews: vendor._count.reviews,
+      },
+    }, 'Profile updated successfully');
   } catch (error) {
     console.error('Update vendor profile error:', error);
     return errorResponse(c, 'Failed to update profile', 500);

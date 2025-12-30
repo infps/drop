@@ -5,12 +5,12 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useVendor } from '../../hooks/use-vendor';
 import api from '../../lib/api';
 
-export default function BankDetailsScreen() {
+export default function DeliverySettingsScreen() {
   const { vendor, fetchProfile } = useVendor();
   const [loading, setLoading] = useState(false);
-  const [accountNumber, setAccountNumber] = useState('');
-  const [ifscCode, setIfscCode] = useState('');
-  const [accountName, setAccountName] = useState('');
+  const [minOrder, setMinOrder] = useState('');
+  const [deliveryRadius, setDeliveryRadius] = useState('');
+  const [prepTime, setPrepTime] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -20,9 +20,9 @@ export default function BankDetailsScreen() {
 
   React.useEffect(() => {
     if (vendor) {
-      setAccountNumber(vendor.bankAccount || '');
-      setIfscCode(vendor.ifscCode || '');
-      setAccountName(vendor.name || '');
+      setMinOrder(vendor.minimumOrder?.toString() || '0');
+      setDeliveryRadius(vendor.deliveryRadius?.toString() || '5');
+      setPrepTime(vendor.avgDeliveryTime?.toString() || '30');
     }
   }, [vendor]);
 
@@ -30,16 +30,17 @@ export default function BankDetailsScreen() {
     setLoading(true);
     try {
       const res = await api.put('/vendor/profile', {
-        bankAccount: accountNumber,
-        ifscCode,
+        minimumOrder: parseFloat(minOrder) || 0,
+        deliveryRadius: parseFloat(deliveryRadius) || 5,
+        avgDeliveryTime: parseInt(prepTime) || 30,
       });
 
       if (res.data.success) {
-        Alert.alert('Success', 'Bank details updated');
+        Alert.alert('Success', 'Delivery settings updated');
         fetchProfile();
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update details');
+      Alert.alert('Error', error.message || 'Failed to update settings');
     } finally {
       setLoading(false);
     }
@@ -48,49 +49,48 @@ export default function BankDetailsScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
-        <View style={styles.bankHeader}>
-          <MaterialIcons name="account-balance" size={24} color="#666" />
-          <Text style={styles.bankName}>Linked Bank Account</Text>
-        </View>
         <View style={styles.formGroup}>
-          <Text style={styles.label}>Account Holder Name</Text>
+          <Text style={styles.label}>Minimum Order (₹)</Text>
           <TextInput
             style={styles.input}
-            value={accountName}
-            onChangeText={setAccountName}
-            editable={false}
-          />
-          <Text style={styles.hint}>Use store name from profile</Text>
-        </View>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Account Number</Text>
-          <TextInput
-            style={styles.input}
-            value={accountNumber}
-            onChangeText={setAccountNumber}
+            value={minOrder}
+            onChangeText={setMinOrder}
             keyboardType="number-pad"
-            placeholder="Enter account number"
+            placeholder="0"
           />
+          <Text style={styles.hint}>Minimum order value for customers</Text>
         </View>
         <View style={styles.formGroup}>
-          <Text style={styles.label}>IFSC Code</Text>
+          <Text style={styles.label}>Delivery Radius (km)</Text>
           <TextInput
             style={styles.input}
-            value={ifscCode}
-            onChangeText={setIfscCode}
-            autoCapitalize="characters"
-            placeholder="Enter IFSC code"
+            value={deliveryRadius}
+            onChangeText={setDeliveryRadius}
+            keyboardType="number-pad"
+            placeholder="5"
           />
+          <Text style={styles.hint}>Maximum distance for delivery</Text>
+        </View>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Average Prep Time (mins)</Text>
+          <TextInput
+            style={styles.input}
+            value={prepTime}
+            onChangeText={setPrepTime}
+            keyboardType="number-pad"
+            placeholder="30"
+          />
+          <Text style={styles.hint}>Estimated time to prepare orders</Text>
         </View>
       </View>
 
       <View style={styles.infoCard}>
         <MaterialIcons name="info" size={20} color="#666" />
-        <Text style={styles.infoText}>Your payouts will be transferred to this account. Ensure the details are correct.</Text>
+        <Text style={styles.infoText}>These settings affect order availability for customers in your area.</Text>
       </View>
 
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-        <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Update Bank Details'}</Text>
+        <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save Changes'}</Text>
       </TouchableOpacity>
       <View style={styles.bottomSpacing} />
     </ScrollView>
@@ -103,8 +103,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 12, padding: 16,
     ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }, android: { elevation: 4 } }),
   },
-  bankHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  bankName: { fontSize: 16, fontWeight: '600', color: '#333' },
   formGroup: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: '#333' },

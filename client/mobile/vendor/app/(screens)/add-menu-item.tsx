@@ -269,6 +269,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: '#333',
+    letterSpacing: 0,
     ...Platform.select({
       ios: {
         shadowColor: '#000',

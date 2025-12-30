@@ -5,12 +5,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useVendor } from '../../hooks/use-vendor';
 import api from '../../lib/api';
 
-export default function BankDetailsScreen() {
+export default function BusinessHoursScreen() {
   const { vendor, fetchProfile } = useVendor();
   const [loading, setLoading] = useState(false);
-  const [accountNumber, setAccountNumber] = useState('');
-  const [ifscCode, setIfscCode] = useState('');
-  const [accountName, setAccountName] = useState('');
+  const [openingTime, setOpeningTime] = useState('');
+  const [closingTime, setClosingTime] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -20,9 +19,8 @@ export default function BankDetailsScreen() {
 
   React.useEffect(() => {
     if (vendor) {
-      setAccountNumber(vendor.bankAccount || '');
-      setIfscCode(vendor.ifscCode || '');
-      setAccountName(vendor.name || '');
+      setOpeningTime(vendor.openingTime || '09:00');
+      setClosingTime(vendor.closingTime || '22:00');
     }
   }, [vendor]);
 
@@ -30,16 +28,16 @@ export default function BankDetailsScreen() {
     setLoading(true);
     try {
       const res = await api.put('/vendor/profile', {
-        bankAccount: accountNumber,
-        ifscCode,
+        openingTime,
+        closingTime,
       });
 
       if (res.data.success) {
-        Alert.alert('Success', 'Bank details updated');
+        Alert.alert('Success', 'Business hours updated');
         fetchProfile();
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update details');
+      Alert.alert('Error', error.message || 'Failed to update hours');
     } finally {
       setLoading(false);
     }
@@ -48,49 +46,46 @@ export default function BankDetailsScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.card}>
-        <View style={styles.bankHeader}>
-          <MaterialIcons name="account-balance" size={24} color="#666" />
-          <Text style={styles.bankName}>Linked Bank Account</Text>
+        <View style={styles.timeRow}>
+          <View style={styles.timeGroup}>
+            <Text style={styles.label}>Opening Time</Text>
+            <TextInput
+              style={styles.input}
+              value={openingTime}
+              onChangeText={setOpeningTime}
+              placeholder="09:00"
+            />
+          </View>
+          <View style={styles.timeGroup}>
+            <Text style={styles.label}>Closing Time</Text>
+            <TextInput
+              style={styles.input}
+              value={closingTime}
+              onChangeText={setClosingTime}
+              placeholder="22:00"
+            />
+          </View>
         </View>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Account Holder Name</Text>
-          <TextInput
-            style={styles.input}
-            value={accountName}
-            onChangeText={setAccountName}
-            editable={false}
+
+        <View style={styles.currentStatus}>
+          <MaterialIcons
+            name={vendor?.isActive ? 'check-circle' : 'cancel'}
+            size={20}
+            color={vendor?.isActive ? '#4CAF50' : '#999'}
           />
-          <Text style={styles.hint}>Use store name from profile</Text>
-        </View>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Account Number</Text>
-          <TextInput
-            style={styles.input}
-            value={accountNumber}
-            onChangeText={setAccountNumber}
-            keyboardType="number-pad"
-            placeholder="Enter account number"
-          />
-        </View>
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>IFSC Code</Text>
-          <TextInput
-            style={styles.input}
-            value={ifscCode}
-            onChangeText={setIfscCode}
-            autoCapitalize="characters"
-            placeholder="Enter IFSC code"
-          />
+          <Text style={styles.statusText}>
+            Store is currently {vendor?.isActive ? 'OPEN' : 'CLOSED'}
+          </Text>
         </View>
       </View>
 
       <View style={styles.infoCard}>
         <MaterialIcons name="info" size={20} color="#666" />
-        <Text style={styles.infoText}>Your payouts will be transferred to this account. Ensure the details are correct.</Text>
+        <Text style={styles.infoText}>Set your daily operating hours. Use 24-hour format (HH:MM).</Text>
       </View>
 
       <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
-        <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Update Bank Details'}</Text>
+        <Text style={styles.saveBtnText}>{loading ? 'Saving...' : 'Save Changes'}</Text>
       </TouchableOpacity>
       <View style={styles.bottomSpacing} />
     </ScrollView>
@@ -103,12 +98,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 12, padding: 16,
     ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }, android: { elevation: 4 } }),
   },
-  bankHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  bankName: { fontSize: 16, fontWeight: '600', color: '#333' },
-  formGroup: { marginBottom: 16 },
+  timeRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  timeGroup: { flex: 1 },
   label: { fontSize: 14, fontWeight: '600', color: '#333', marginBottom: 8 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16, color: '#333' },
-  hint: { fontSize: 12, color: '#999', marginTop: 4 },
+  currentStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
+  statusText: { fontSize: 14, fontWeight: '600', color: '#333' },
   infoCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: '#FFF3E0', borderRadius: 8, padding: 12, marginTop: 16 },
   infoText: { flex: 1, fontSize: 13, color: '#666', lineHeight: 18 },
   saveBtn: { backgroundColor: '#FF6B6B', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 24 },

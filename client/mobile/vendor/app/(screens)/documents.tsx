@@ -1,34 +1,78 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-
-const DOCUMENTS = [
-  { id: '1', name: 'GST Certificate', status: 'verified', date: '15 Jan 2024' },
-  { id: '2', name: 'FSSAI License', status: 'verified', date: '20 Feb 2024' },
-  { id: '3', name: 'PAN Card', status: 'verified', date: '10 Jan 2024' },
-  { id: '4', name: 'Bank Account Proof', status: 'pending', date: '25 Dec 2024' },
-];
+import { useVendor } from '../../hooks/use-vendor';
 
 export default function DocumentsScreen() {
+  const { vendor, fetchProfile } = useVendor();
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [fetchProfile])
+  );
+
+  const documents = [
+    {
+      id: '1',
+      name: 'GST Certificate',
+      value: vendor?.gstNumber,
+      status: vendor?.gstNumber ? 'verified' : 'pending',
+    },
+    {
+      id: '2',
+      name: 'FSSAI License',
+      value: vendor?.fssaiNumber,
+      status: vendor?.fssaiNumber ? 'verified' : 'pending',
+    },
+    {
+      id: '3',
+      name: 'PAN Card',
+      value: vendor?.panNumber,
+      status: vendor?.panNumber ? 'verified' : 'pending',
+    },
+  ];
+
+  const allVerified = documents.every((doc) => doc.status === 'verified');
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.infoCard}>
-        <MaterialIcons name="verified" size={20} color="#4CAF50" />
-        <Text style={styles.infoText}>All required documents are verified. Your store is active on Drop.</Text>
+      <View style={[styles.infoCard, { backgroundColor: allVerified ? '#E8F5E9' : '#FFF3E0' }]}>
+        <MaterialIcons
+          name={allVerified ? 'verified' : 'info'}
+          size={20}
+          color={allVerified ? '#4CAF50' : '#FF9800'}
+        />
+        <Text style={styles.infoText}>
+          {allVerified
+            ? 'All required documents are verified. Your store is active on Drop.'
+            : 'Some documents are missing or pending verification.'}
+        </Text>
       </View>
 
       <View style={styles.docsList}>
-        {DOCUMENTS.map((doc) => (
+        {documents.map((doc) => (
           <View key={doc.id} style={styles.docCard}>
             <View style={styles.docInfo}>
               <MaterialIcons name="description" size={24} color="#666" />
               <View style={styles.docDetails}>
                 <Text style={styles.docName}>{doc.name}</Text>
-                <Text style={styles.docDate}>Uploaded: {doc.date}</Text>
+                {doc.value && <Text style={styles.docDate}>{doc.value}</Text>}
               </View>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: doc.status === 'verified' ? '#E8F5E9' : '#FFF3E0' }]}>
-              <Text style={[styles.statusText, { color: doc.status === 'verified' ? '#4CAF50' : '#FF9800' }]}>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: doc.status === 'verified' ? '#E8F5E9' : '#FFF3E0' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: doc.status === 'verified' ? '#4CAF50' : '#FF9800' },
+                ]}
+              >
                 {doc.status === 'verified' ? 'Verified' : 'Pending'}
               </Text>
             </View>
@@ -36,10 +80,12 @@ export default function DocumentsScreen() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.uploadBtn}>
-        <MaterialIcons name="upload-file" size={20} color="#FF6B6B" />
-        <Text style={styles.uploadBtnText}>Upload New Document</Text>
-      </TouchableOpacity>
+      <View style={styles.infoCard}>
+        <MaterialIcons name="info" size={20} color="#666" />
+        <Text style={styles.infoText}>
+          Contact support to update your documents. Upload functionality coming soon.
+        </Text>
+      </View>
 
       <View style={styles.bottomSpacing} />
     </ScrollView>

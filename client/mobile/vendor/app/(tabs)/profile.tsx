@@ -13,7 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAuth } from '../../hooks/use-auth';
 import { useVendor } from '../../hooks/use-vendor';
-import { formatRating } from '../../utils/formatting';
+import { formatRating, formatVendorType } from '../../utils/formatting';
 
 interface MenuItemProps {
   icon: string;
@@ -76,7 +76,7 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.storeName}>{vendor?.name || 'Your Store'}</Text>
-            <Text style={styles.storeType}>{vendor?.type || 'Restaurant'}</Text>
+            <Text style={styles.storeType}>{vendor?.type ? formatVendorType(vendor.type) : 'Restaurant'}</Text>
             <View style={styles.ratingRow}>
               <MaterialIcons name="star" size={16} color="#FFD700" />
               <Text style={styles.rating}>
@@ -103,12 +103,12 @@ export default function ProfileScreen() {
             <MenuItem
               icon="access-time"
               label="Business Hours"
-              onPress={() => router.push('/(screens)/settings')}
+              onPress={() => router.push('/(screens)/business-hours')}
             />
             <MenuItem
               icon="delivery-dining"
               label="Delivery Settings"
-              onPress={() => router.push('/(screens)/settings')}
+              onPress={() => router.push('/(screens)/delivery-settings')}
             />
             <MenuItem
               icon="table-restaurant"
@@ -156,12 +156,12 @@ export default function ProfileScreen() {
             <MenuItem
               icon="help"
               label="Help & Support"
-              onPress={() => {}}
+              onPress={() => router.push('/(screens)/help-support')}
             />
             <MenuItem
               icon="policy"
               label="Terms & Policies"
-              onPress={() => {}}
+              onPress={() => router.push('/(screens)/terms-policies')}
             />
           </View>
         </View>

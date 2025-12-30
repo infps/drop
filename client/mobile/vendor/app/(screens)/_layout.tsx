@@ -21,6 +21,7 @@ export default function ScreensLayout() {
         headerShadowVisible: false,
         headerBackTitleVisible: false,
         presentation: 'card',
+        headerLeft: () => <BackButton />,
       }}
     >
       <Stack.Screen name="order-detail" options={{ title: 'Order Details' }} />
@@ -29,7 +30,6 @@ export default function ScreensLayout() {
         options={{
           title: 'Add Menu Item',
           headerStyle: { backgroundColor: '#f5f5f5' },
-          headerLeft: () => <BackButton />,
         }}
       />
       <Stack.Screen name="edit-menu-item" options={{ title: 'Edit Menu Item' }} />

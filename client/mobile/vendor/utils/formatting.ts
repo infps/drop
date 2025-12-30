@@ -106,3 +106,18 @@ export const formatPhoneNumber = (phone: string): string => {
   }
   return phone;
 };
+
+export const formatVendorType = (type: string): string => {
+  const typeMap: Record<string, string> = {
+    RESTAURANT: 'Restaurant',
+    GROCERY: 'Grocery',
+    WINE_SHOP: 'Wine Shop',
+    PHARMACY: 'Pharmacy',
+    MEAT_SHOP: 'Meat Shop',
+    MILK_DAIRY: 'Milk & Dairy',
+    PET_SUPPLIES: 'Pet Supplies',
+    FLOWERS: 'Flowers',
+    GENERAL_STORE: 'General Store',
+  };
+  return typeMap[type] || capitalizeFirst(type.replace(/_/g, ' '));
+};
