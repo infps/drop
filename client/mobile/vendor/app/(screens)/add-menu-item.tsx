@@ -14,11 +14,13 @@ import {
 import { useRouter } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useMenu } from '../../hooks/use-menu';
+import { DishImagePicker } from '../../components/DishImagePicker';
 
 export default function AddMenuItemScreen() {
   const router = useRouter();
   const { categories, fetchCategories, createMenuItem, createCategory, isLoading } = useMenu();
 
+  const [images, setImages] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -29,6 +31,8 @@ export default function AddMenuItemScreen() {
   const [prepTime, setPrepTime] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchCategories();
@@ -46,17 +50,45 @@ export default function AddMenuItemScreen() {
     }
   };
 
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (images.length === 0) {
+      newErrors.images = 'At least one dish image is required';
+    }
+
+    if (!name.trim()) {
+      newErrors.name = 'Item name is required';
+    }
+
+    if (!categoryId) {
+      newErrors.category = 'Please select a category';
+    }
+
+    if (!price || parseFloat(price) <= 0) {
+      newErrors.price = 'Valid price is required';
+    }
+
+    if (discountPrice && parseFloat(discountPrice) >= parseFloat(price)) {
+      newErrors.discountPrice = 'Discount must be less than price';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!name || !categoryId || !price) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!validate()) {
+      Alert.alert('Validation Error', 'Please fix the errors and try again');
       return;
     }
 
     try {
       await createMenuItem({
-        name,
-        description,
+        name: name.trim(),
+        description: description.trim() || undefined,
         categoryId,
+        images,
         price: parseFloat(price),
         discountPrice: discountPrice ? parseFloat(discountPrice) : undefined,
         isVeg,
@@ -70,20 +102,32 @@ export default function AddMenuItemScreen() {
     }
   };
 
-  const isValid = name && categoryId && price;
+  const isValid = images.length > 0 && name && categoryId && price;
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.form}>
+        {/* IMAGE PICKER - FIRST AND PROMINENT */}
+        <DishImagePicker
+          images={images}
+          onChange={setImages}
+          required
+          error={errors.images}
+        />
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>Item Name *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.name && styles.inputError]}
             placeholder="Enter item name"
             placeholderTextColor="#999"
             value={name}
-            onChangeText={setName}
+            onChangeText={(text) => {
+              setName(text);
+              if (errors.name) setErrors((e) => ({ ...e, name: '' }));
+            }}
           />
+          {errors.name && <Text style={styles.fieldError}>{errors.name}</Text>}
         </View>
 
         <View style={styles.formGroup}>
@@ -109,8 +153,12 @@ export default function AddMenuItemScreen() {
                 style={[
                   styles.categoryChip,
                   categoryId === cat.id && styles.categoryChipActive,
+                  errors.category && !categoryId && styles.categoryChipError,
                 ]}
-                onPress={() => setCategoryId(cat.id)}
+                onPress={() => {
+                  setCategoryId(cat.id);
+                  if (errors.category) setErrors((e) => ({ ...e, category: '' }));
+                }}
               >
                 <Text
                   style={[
@@ -130,6 +178,7 @@ export default function AddMenuItemScreen() {
               <Text style={styles.addCategoryText}>Add</Text>
             </TouchableOpacity>
           </View>
+          {errors.category && <Text style={styles.fieldError}>{errors.category}</Text>}
           {showAddCategory && (
             <View style={styles.addCategoryRow}>
               <TextInput
@@ -160,24 +209,32 @@ export default function AddMenuItemScreen() {
           <View style={[styles.formGroup, { flex: 1 }]}>
             <Text style={styles.label}>Price (₹) *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.price && styles.inputError]}
               placeholder="0.00"
               placeholderTextColor="#999"
               keyboardType="decimal-pad"
               value={price}
-              onChangeText={setPrice}
+              onChangeText={(text) => {
+                setPrice(text);
+                if (errors.price) setErrors((e) => ({ ...e, price: '' }));
+              }}
             />
+            {errors.price && <Text style={styles.fieldError}>{errors.price}</Text>}
           </View>
           <View style={[styles.formGroup, { flex: 1 }]}>
             <Text style={styles.label}>Discount Price (₹)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.discountPrice && styles.inputError]}
               placeholder="0.00"
               placeholderTextColor="#999"
               keyboardType="decimal-pad"
               value={discountPrice}
-              onChangeText={setDiscountPrice}
+              onChangeText={(text) => {
+                setDiscountPrice(text);
+                if (errors.discountPrice) setErrors((e) => ({ ...e, discountPrice: '' }));
+              }}
             />
+            {errors.discountPrice && <Text style={styles.fieldError}>{errors.discountPrice}</Text>}
           </View>
         </View>
 
@@ -282,6 +339,15 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  inputError: {
+    borderWidth: 1,
+    borderColor: '#e53935',
+  },
+  fieldError: {
+    color: '#e53935',
+    fontSize: 12,
+    marginTop: 4,
+  },
   textArea: {
     height: 80,
   },
@@ -309,6 +375,10 @@ const styles = StyleSheet.create({
   },
   categoryChipActive: {
     backgroundColor: '#FF6B6B',
+  },
+  categoryChipError: {
+    borderWidth: 1,
+    borderColor: '#e53935',
   },
   categoryText: {
     fontSize: 14,

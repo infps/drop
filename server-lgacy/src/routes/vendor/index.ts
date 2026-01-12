@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
-import { getCurrentUser } from '../../lib/auth';
+import { Hono } from "hono";
+import { getCurrentUser } from "../../lib/auth";
 import {
   successResponse,
   errorResponse,
@@ -8,26 +8,29 @@ import {
   getPaginationParams,
   badRequestResponse,
   notFoundResponse,
-} from '../../middleware/response';
-import prisma from '../../lib/prisma';
-import registerRoute from './register';
+} from "../../middleware/response";
+import prisma from "../../lib/prisma";
+import registerRoute from "./register";
+import { isValidCloudinaryUrl } from "../../lib/cloudinary";
+
+const MAX_IMAGES_PER_DISH = 5;
 
 const app = new Hono();
 
 // Public routes (no auth required)
-app.route('/register', registerRoute);
+app.route("/register", registerRoute);
 
 // GET /vendor/menu - Get vendor's menu items with categories
-app.get('/menu', async (c) => {
+app.get("/menu", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
-    const category = c.req.query('category');
-    const search = c.req.query('search');
-    const isAvailable = c.req.query('isAvailable');
+    const category = c.req.query("category");
+    const search = c.req.query("search");
+    const isAvailable = c.req.query("isAvailable");
     const { page, limit, skip } = getPaginationParams(c);
 
     // Get vendor
@@ -36,7 +39,7 @@ app.get('/menu', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
     const where: any = { vendorId: vendor.id };
@@ -47,13 +50,13 @@ app.get('/menu', async (c) => {
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
       ];
     }
 
     if (isAvailable !== null && isAvailable !== undefined) {
-      where.isAvailable = isAvailable === 'true';
+      where.isAvailable = isAvailable === "true";
     }
 
     const [products, total] = await Promise.all([
@@ -61,7 +64,7 @@ app.get('/menu', async (c) => {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           category: {
             select: { id: true, name: true, icon: true },
@@ -73,45 +76,45 @@ app.get('/menu', async (c) => {
 
     return paginatedResponse(c, products, page, limit, total);
   } catch (error) {
-    console.error('Vendor menu GET error:', error);
-    return errorResponse(c, 'Failed to fetch menu items', 500);
+    console.error("Vendor menu GET error:", error);
+    return errorResponse(c, "Failed to fetch menu items", 500);
   }
 });
 
 // GET /vendor/menu/categories - Get categories for vendor
-app.get('/menu/categories', async (c) => {
+app.get("/menu/categories", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const categories = await prisma.category.findMany({
       where: { vendorId: user.userId },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, icon: true },
     });
 
     return successResponse(c, categories);
   } catch (error) {
-    console.error('Get categories error:', error);
-    return errorResponse(c, 'Failed to fetch categories', 500);
+    console.error("Get categories error:", error);
+    return errorResponse(c, "Failed to fetch categories", 500);
   }
 });
 
 // POST /vendor/menu/categories - Create category for vendor
-app.post('/menu/categories', async (c) => {
+app.post("/menu/categories", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const body = await c.req.json();
     const { name, icon } = body;
 
     if (!name) {
-      return badRequestResponse(c, 'Category name is required');
+      return badRequestResponse(c, "Category name is required");
     }
 
     const category = await prisma.category.create({
@@ -123,19 +126,19 @@ app.post('/menu/categories', async (c) => {
       select: { id: true, name: true, icon: true },
     });
 
-    return successResponse(c, category, 'Category created', 201);
+    return successResponse(c, category, "Category created", 201);
   } catch (error) {
-    console.error('Create category error:', error);
-    return errorResponse(c, 'Failed to create category', 500);
+    console.error("Create category error:", error);
+    return errorResponse(c, "Failed to create category", 500);
   }
 });
 
 // POST /vendor/menu - Add menu item
-app.post('/menu', async (c) => {
+app.post("/menu", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findFirst({
@@ -143,7 +146,7 @@ app.post('/menu', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
     const body = await c.req.json();
@@ -158,8 +161,33 @@ app.post('/menu', async (c) => {
       inStock = true,
     } = body;
 
+    // Validate required fields
     if (!name || !price) {
-      return badRequestResponse(c, 'Name and price are required');
+      return badRequestResponse(c, "Name and price are required");
+    }
+
+    // MANDATORY: At least one image required
+    if (!Array.isArray(images) || images.length === 0) {
+      return badRequestResponse(c, "At least one dish image is required");
+    }
+
+    // Validate max images
+    if (images.length > MAX_IMAGES_PER_DISH) {
+      return badRequestResponse(
+        c,
+        `Maximum ${MAX_IMAGES_PER_DISH} images allowed`,
+      );
+    }
+
+    // Validate all images are from Cloudinary
+    const invalidImages = images.filter(
+      (url: string) => !isValidCloudinaryUrl(url),
+    );
+    if (invalidImages.length > 0) {
+      return badRequestResponse(
+        c,
+        "All images must be uploaded via Cloudinary",
+      );
     }
 
     const product = await prisma.product.create({
@@ -176,19 +204,57 @@ app.post('/menu', async (c) => {
       },
     });
 
-    return successResponse(c, product, 'Menu item created successfully', 201);
+    return successResponse(c, product, "Menu item created successfully", 201);
   } catch (error) {
-    console.error('Vendor menu POST error:', error);
-    return errorResponse(c, 'Failed to create menu item', 500);
+    console.error("Vendor menu POST error:", error);
+    return errorResponse(c, "Failed to create menu item", 500);
+  }
+});
+
+// GET /vendor/menu/:id - Get single menu item
+app.get("/menu/:id", async (c) => {
+  try {
+    const user = await getCurrentUser(c);
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
+    }
+
+    const vendor = await prisma.vendor.findFirst({
+      where: { id: user.userId },
+    });
+
+    if (!vendor) {
+      return notFoundResponse(c, "Vendor not found");
+    }
+
+    const id = c.req.param("id");
+    const product = await prisma.product.findFirst({
+      where: {
+        id,
+        vendorId: vendor.id,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    if (!product) {
+      return notFoundResponse(c, "Menu item not found");
+    }
+
+    return successResponse(c, product);
+  } catch (error) {
+    console.error("Vendor menu GET by ID error:", error);
+    return errorResponse(c, "Failed to fetch menu item", 500);
   }
 });
 
 // PUT /vendor/menu/:id - Update menu item
-app.put('/menu/:id', async (c) => {
+app.put("/menu/:id", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findFirst({
@@ -196,14 +262,14 @@ app.put('/menu/:id', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
-    const id = c.req.param('id');
+    const id = c.req.param("id");
     const body = await c.req.json();
 
     if (!id) {
-      return badRequestResponse(c, 'Product ID is required');
+      return badRequestResponse(c, "Product ID is required");
     }
 
     // Verify product belongs to vendor
@@ -212,7 +278,29 @@ app.put('/menu/:id', async (c) => {
     });
 
     if (!existingProduct) {
-      return notFoundResponse(c, 'Product not found');
+      return notFoundResponse(c, "Product not found");
+    }
+
+    // Validate images if provided
+    if (body.images !== undefined) {
+      if (!Array.isArray(body.images) || body.images.length === 0) {
+        return badRequestResponse(c, "At least one dish image is required");
+      }
+      if (body.images.length > MAX_IMAGES_PER_DISH) {
+        return badRequestResponse(
+          c,
+          `Maximum ${MAX_IMAGES_PER_DISH} images allowed`,
+        );
+      }
+      const invalidImages = body.images.filter(
+        (url: string) => !isValidCloudinaryUrl(url),
+      );
+      if (invalidImages.length > 0) {
+        return badRequestResponse(
+          c,
+          "All images must be uploaded via Cloudinary",
+        );
+      }
     }
 
     const product = await prisma.product.update({
@@ -220,19 +308,19 @@ app.put('/menu/:id', async (c) => {
       data: body,
     });
 
-    return successResponse(c, product, 'Menu item updated successfully');
+    return successResponse(c, product, "Menu item updated successfully");
   } catch (error) {
-    console.error('Vendor menu PUT error:', error);
-    return errorResponse(c, 'Failed to update menu item', 500);
+    console.error("Vendor menu PUT error:", error);
+    return errorResponse(c, "Failed to update menu item", 500);
   }
 });
 
 // PATCH /vendor/menu/:id - Update menu item (partial)
-app.patch('/menu/:id', async (c) => {
+app.patch("/menu/:id", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findFirst({
@@ -240,14 +328,14 @@ app.patch('/menu/:id', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
-    const id = c.req.param('id');
+    const id = c.req.param("id");
     const body = await c.req.json();
 
     if (!id) {
-      return badRequestResponse(c, 'Product ID is required');
+      return badRequestResponse(c, "Product ID is required");
     }
 
     // Verify product belongs to vendor
@@ -256,7 +344,29 @@ app.patch('/menu/:id', async (c) => {
     });
 
     if (!existingProduct) {
-      return notFoundResponse(c, 'Product not found');
+      return notFoundResponse(c, "Product not found");
+    }
+
+    // Validate images if provided
+    if (body.images !== undefined) {
+      if (!Array.isArray(body.images) || body.images.length === 0) {
+        return badRequestResponse(c, "At least one dish image is required");
+      }
+      if (body.images.length > MAX_IMAGES_PER_DISH) {
+        return badRequestResponse(
+          c,
+          `Maximum ${MAX_IMAGES_PER_DISH} images allowed`,
+        );
+      }
+      const invalidImages = body.images.filter(
+        (url: string) => !isValidCloudinaryUrl(url),
+      );
+      if (invalidImages.length > 0) {
+        return badRequestResponse(
+          c,
+          "All images must be uploaded via Cloudinary",
+        );
+      }
     }
 
     const product = await prisma.product.update({
@@ -264,19 +374,19 @@ app.patch('/menu/:id', async (c) => {
       data: body,
     });
 
-    return successResponse(c, product, 'Menu item updated successfully');
+    return successResponse(c, product, "Menu item updated successfully");
   } catch (error) {
-    console.error('Vendor menu PATCH error:', error);
-    return errorResponse(c, 'Failed to update menu item', 500);
+    console.error("Vendor menu PATCH error:", error);
+    return errorResponse(c, "Failed to update menu item", 500);
   }
 });
 
 // DELETE /vendor/menu/:id - Delete menu item
-app.delete('/menu/:id', async (c) => {
+app.delete("/menu/:id", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findFirst({
@@ -284,13 +394,13 @@ app.delete('/menu/:id', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
-    const id = c.req.param('id');
+    const id = c.req.param("id");
 
     if (!id) {
-      return badRequestResponse(c, 'Product ID is required');
+      return badRequestResponse(c, "Product ID is required");
     }
 
     // Verify product belongs to vendor
@@ -299,24 +409,24 @@ app.delete('/menu/:id', async (c) => {
     });
 
     if (!existingProduct) {
-      return notFoundResponse(c, 'Product not found');
+      return notFoundResponse(c, "Product not found");
     }
 
     await prisma.product.delete({ where: { id } });
 
-    return successResponse(c, null, 'Menu item deleted successfully');
+    return successResponse(c, null, "Menu item deleted successfully");
   } catch (error) {
-    console.error('Vendor menu DELETE error:', error);
-    return errorResponse(c, 'Failed to delete menu item', 500);
+    console.error("Vendor menu DELETE error:", error);
+    return errorResponse(c, "Failed to delete menu item", 500);
   }
 });
 
 // GET /vendor/orders - Get vendor's orders
-app.get('/orders', async (c) => {
+app.get("/orders", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findFirst({
@@ -324,11 +434,11 @@ app.get('/orders', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
-    const status = c.req.query('status');
-    const type = c.req.query('type'); // 'active', 'completed'
+    const status = c.req.query("status");
+    const type = c.req.query("type"); // 'active', 'completed'
     const { page, limit, skip } = getPaginationParams(c);
 
     const where: Record<string, unknown> = {
@@ -339,20 +449,27 @@ app.get('/orders', async (c) => {
       where.status = status;
     }
 
-    if (type === 'active') {
+    if (type === "active") {
       where.status = {
-        in: ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP', 'PICKED_UP', 'OUT_FOR_DELIVERY'],
+        in: [
+          "PENDING",
+          "CONFIRMED",
+          "PREPARING",
+          "READY_FOR_PICKUP",
+          "PICKED_UP",
+          "OUT_FOR_DELIVERY",
+        ],
       };
-    } else if (type === 'completed') {
+    } else if (type === "completed") {
       where.status = {
-        in: ['DELIVERED', 'CANCELLED', 'REFUNDED'],
+        in: ["DELIVERED", "CANCELLED", "REFUNDED"],
       };
     }
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         skip,
         take: limit,
         include: {
@@ -360,7 +477,13 @@ app.get('/orders', async (c) => {
             select: { id: true, name: true, phone: true, avatar: true },
           },
           rider: {
-            select: { id: true, name: true, phone: true, avatar: true, vehicleNumber: true },
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              avatar: true,
+              vehicleNumber: true,
+            },
           },
           address: true,
           items: {
@@ -371,7 +494,7 @@ app.get('/orders', async (c) => {
             },
           },
           statusHistory: {
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: "desc" },
           },
         },
       }),
@@ -380,17 +503,17 @@ app.get('/orders', async (c) => {
 
     return paginatedResponse(c, orders, page, limit, total);
   } catch (error) {
-    console.error('Vendor orders GET error:', error);
-    return errorResponse(c, 'Failed to fetch orders', 500);
+    console.error("Vendor orders GET error:", error);
+    return errorResponse(c, "Failed to fetch orders", 500);
   }
 });
 
 // PATCH /vendor/orders/:id - Update order status
-app.patch('/orders/:id', async (c) => {
+app.patch("/orders/:id", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findFirst({
@@ -398,15 +521,15 @@ app.patch('/orders/:id', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
-    const orderId = c.req.param('id');
+    const orderId = c.req.param("id");
     const body = await c.req.json();
     const { status, note } = body;
 
     if (!status) {
-      return badRequestResponse(c, 'Status is required');
+      return badRequestResponse(c, "Status is required");
     }
 
     // Verify order belongs to vendor
@@ -415,7 +538,7 @@ app.patch('/orders/:id', async (c) => {
     });
 
     if (!order) {
-      return notFoundResponse(c, 'Order not found');
+      return notFoundResponse(c, "Order not found");
     }
 
     const updatedOrder = await prisma.order.update({
@@ -441,19 +564,23 @@ app.patch('/orders/:id', async (c) => {
       },
     });
 
-    return successResponse(c, updatedOrder, 'Order status updated successfully');
+    return successResponse(
+      c,
+      updatedOrder,
+      "Order status updated successfully",
+    );
   } catch (error) {
-    console.error('Vendor order status update error:', error);
-    return errorResponse(c, 'Failed to update order status', 500);
+    console.error("Vendor order status update error:", error);
+    return errorResponse(c, "Failed to update order status", 500);
   }
 });
 
 // GET /vendor/earnings - Get vendor earnings summary
-app.get('/earnings', async (c) => {
+app.get("/earnings", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findFirst({
@@ -461,28 +588,28 @@ app.get('/earnings', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
-    const period = c.req.query('period') || 'today'; // today, week, month, all
+    const period = c.req.query("period") || "today"; // today, week, month, all
     const { page, limit, skip } = getPaginationParams(c);
 
     let startDate: Date | undefined;
 
-    if (period === 'today') {
+    if (period === "today") {
       startDate = new Date();
       startDate.setHours(0, 0, 0, 0);
-    } else if (period === 'week') {
+    } else if (period === "week") {
       startDate = new Date();
       startDate.setDate(startDate.getDate() - 7);
-    } else if (period === 'month') {
+    } else if (period === "month") {
       startDate = new Date();
       startDate.setMonth(startDate.getMonth() - 1);
     }
 
     const where: Record<string, unknown> = {
       vendorId: vendor.id,
-      status: 'DELIVERED',
+      status: "DELIVERED",
     };
 
     if (startDate) {
@@ -494,7 +621,7 @@ app.get('/earnings', async (c) => {
     const results = await Promise.all([
       prisma.order.findMany({
         where,
-        orderBy: { deliveredAt: 'desc' },
+        orderBy: { deliveredAt: "desc" },
         skip,
         take: limit,
         select: {
@@ -541,26 +668,25 @@ app.get('/earnings', async (c) => {
           totalOrders: summary._count,
         },
         vendor: {
-          totalOrders: vendor.totalOrders,
           rating: vendor.rating,
         },
       })),
       page,
       limit,
-      total
+      total,
     );
   } catch (error) {
-    console.error('Get vendor earnings error:', error);
-    return errorResponse(c, 'Failed to fetch earnings', 500);
+    console.error("Get vendor earnings error:", error);
+    return errorResponse(c, "Failed to fetch earnings", 500);
   }
 });
 
 // GET /vendor/profile - Get vendor profile
-app.get('/profile', async (c) => {
+app.get("/profile", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findUnique({
@@ -577,7 +703,7 @@ app.get('/profile', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
     // Get stats
@@ -597,14 +723,14 @@ app.get('/profile', async (c) => {
         where: {
           vendorId: user.userId,
           status: {
-            in: ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP'],
+            in: ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP"],
           },
         },
       }),
       prisma.order.aggregate({
         where: {
           vendorId: user.userId,
-          status: 'DELIVERED',
+          status: "DELIVERED",
           deliveredAt: {
             gte: today,
           },
@@ -627,17 +753,17 @@ app.get('/profile', async (c) => {
       },
     });
   } catch (error) {
-    console.error('Get vendor profile error:', error);
-    return errorResponse(c, 'Failed to fetch profile', 500);
+    console.error("Get vendor profile error:", error);
+    return errorResponse(c, "Failed to fetch profile", 500);
   }
 });
 
 // GET /vendor/reviews - Get vendor reviews
-app.get('/reviews', async (c) => {
+app.get("/reviews", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const { page, limit, skip } = getPaginationParams(c);
@@ -649,7 +775,7 @@ app.get('/reviews', async (c) => {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         include: {
           user: {
             select: { id: true, name: true, avatar: true },
@@ -661,25 +787,25 @@ app.get('/reviews', async (c) => {
 
     return paginatedResponse(c, reviews, page, limit, total);
   } catch (error) {
-    console.error('Get vendor reviews error:', error);
-    return errorResponse(c, 'Failed to fetch reviews', 500);
+    console.error("Get vendor reviews error:", error);
+    return errorResponse(c, "Failed to fetch reviews", 500);
   }
 });
 
 // POST /vendor/reviews/:id/reply - Reply to review (stored in review comment)
-app.post('/reviews/:id/reply', async (c) => {
+app.post("/reviews/:id/reply", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
-    const reviewId = c.req.param('id');
+    const reviewId = c.req.param("id");
     const body = await c.req.json();
     const { reply } = body;
 
     if (!reply) {
-      return badRequestResponse(c, 'Reply text is required');
+      return badRequestResponse(c, "Reply text is required");
     }
 
     const review = await prisma.review.findFirst({
@@ -687,7 +813,7 @@ app.post('/reviews/:id/reply', async (c) => {
     });
 
     if (!review) {
-      return notFoundResponse(c, 'Review not found');
+      return notFoundResponse(c, "Review not found");
     }
 
     // For now, append reply to comment. Better to add vendorReply field to schema later
@@ -703,19 +829,19 @@ app.post('/reviews/:id/reply', async (c) => {
       },
     });
 
-    return successResponse(c, updatedReview, 'Reply posted successfully');
+    return successResponse(c, updatedReview, "Reply posted successfully");
   } catch (error) {
-    console.error('Post review reply error:', error);
-    return errorResponse(c, 'Failed to post reply', 500);
+    console.error("Post review reply error:", error);
+    return errorResponse(c, "Failed to post reply", 500);
   }
 });
 
 // GET /vendor/analytics - Get vendor analytics
-app.get('/analytics', async (c) => {
+app.get("/analytics", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const vendor = await prisma.vendor.findUnique({
@@ -723,7 +849,7 @@ app.get('/analytics', async (c) => {
     });
 
     if (!vendor) {
-      return notFoundResponse(c, 'Vendor not found');
+      return notFoundResponse(c, "Vendor not found");
     }
 
     const today = new Date();
@@ -735,7 +861,14 @@ app.get('/analytics', async (c) => {
     const lastWeekStart = new Date();
     lastWeekStart.setDate(lastWeekStart.getDate() - 14);
 
-    const [thisWeekOrders, lastWeekOrders, thisWeekRevenue, lastWeekRevenue, topItems, avgPrepTime, orderAcceptanceRate] = await Promise.all([
+    const [
+      thisWeekOrders,
+      lastWeekOrders,
+      thisWeekRevenue,
+      lastWeekRevenue,
+      topItems,
+      orderAcceptanceRate,
+    ] = await Promise.all([
       prisma.order.count({
         where: {
           vendorId: user.userId,
@@ -751,7 +884,7 @@ app.get('/analytics', async (c) => {
       prisma.order.aggregate({
         where: {
           vendorId: user.userId,
-          status: 'DELIVERED',
+          status: "DELIVERED",
           deliveredAt: { gte: thisWeekStart },
         },
         _sum: { subtotal: true },
@@ -759,32 +892,33 @@ app.get('/analytics', async (c) => {
       prisma.order.aggregate({
         where: {
           vendorId: user.userId,
-          status: 'DELIVERED',
+          status: "DELIVERED",
           deliveredAt: { gte: lastWeekStart, lt: thisWeekStart },
         },
         _sum: { subtotal: true },
       }),
       prisma.orderItem.groupBy({
-        by: ['productId'],
+        by: ["productId"],
         where: {
-          order: { vendorId: user.userId, status: 'DELIVERED' },
+          order: { vendorId: user.userId, status: "DELIVERED" },
         },
         _count: { productId: true },
         _sum: { quantity: true, price: true },
-        orderBy: { _count: { productId: 'desc' } },
+        orderBy: { _count: { productId: "desc" } },
         take: 5,
       }),
-      prisma.order.aggregate({
-        where: { vendorId: user.userId, status: 'DELIVERED' },
-        _avg: { avgDeliveryTime: true },
-      }),
       prisma.order.count({
-        where: { vendorId: user.userId, status: { not: 'CANCELLED' } },
+        where: { vendorId: user.userId, status: { not: "CANCELLED" } },
       }),
     ]);
 
-    const totalOrders = await prisma.order.count({ where: { vendorId: user.userId } });
-    const acceptanceRate = totalOrders > 0 ? ((orderAcceptanceRate / totalOrders) * 100).toFixed(0) : 0;
+    const totalOrders = await prisma.order.count({
+      where: { vendorId: user.userId },
+    });
+    const acceptanceRate =
+      totalOrders > 0
+        ? ((orderAcceptanceRate / totalOrders) * 100).toFixed(0)
+        : 0;
 
     const productIds = topItems.map((item) => item.productId);
     const products = await prisma.product.findMany({
@@ -795,7 +929,7 @@ app.get('/analytics', async (c) => {
     const topItemsWithNames = topItems.map((item) => {
       const product = products.find((p) => p.id === item.productId);
       return {
-        name: product?.name || 'Unknown',
+        name: product?.name || "Unknown",
         orders: item._count.productId,
         revenue: item._sum.price || 0,
       };
@@ -803,36 +937,43 @@ app.get('/analytics', async (c) => {
 
     const thisWeekRev = thisWeekRevenue._sum.subtotal || 0;
     const lastWeekRev = lastWeekRevenue._sum.subtotal || 0;
-    const revenueChange = lastWeekRev > 0 ? (((thisWeekRev - lastWeekRev) / lastWeekRev) * 100).toFixed(0) : 0;
+    const revenueChangeNum =
+      lastWeekRev > 0
+        ? (((thisWeekRev - lastWeekRev) / lastWeekRev) * 100)
+        : 0;
 
-    const orderChange = lastWeekOrders > 0 ? (((thisWeekOrders - lastWeekOrders) / lastWeekOrders) * 100).toFixed(0) : 0;
+    const orderChangeNum =
+      lastWeekOrders > 0
+        ? (((thisWeekOrders - lastWeekOrders) / lastWeekOrders) * 100)
+        : 0;
 
-    const avgOrderValue = thisWeekOrders > 0 ? (thisWeekRev / thisWeekOrders).toFixed(0) : 0;
+    const avgOrderValue =
+      thisWeekOrders > 0 ? (thisWeekRev / thisWeekOrders).toFixed(0) : 0;
 
     return successResponse(c, {
       thisWeekRevenue: thisWeekRev,
-      revenueChange: `${revenueChange >= 0 ? '+' : ''}${revenueChange}%`,
+      revenueChange: `${revenueChangeNum >= 0 ? "+" : ""}${revenueChangeNum.toFixed(0)}%`,
       thisWeekOrders,
-      orderChange: `${orderChange >= 0 ? '+' : ''}${orderChange}%`,
+      orderChange: `${orderChangeNum >= 0 ? "+" : ""}${orderChangeNum.toFixed(0)}%`,
       avgOrderValue,
       rating: vendor.rating,
       totalReviews: vendor.totalRatings,
       topItems: topItemsWithNames,
-      avgPrepTime: avgPrepTime._avg.avgDeliveryTime || 0,
+      avgPrepTime: 0,
       acceptanceRate: `${acceptanceRate}%`,
     });
   } catch (error) {
-    console.error('Get vendor analytics error:', error);
-    return errorResponse(c, 'Failed to fetch analytics', 500);
+    console.error("Get vendor analytics error:", error);
+    return errorResponse(c, "Failed to fetch analytics", 500);
   }
 });
 
 // PUT /vendor/profile - Update vendor profile
-app.put('/profile', async (c) => {
+app.put("/profile", async (c) => {
   try {
     const user = await getCurrentUser(c);
-    if (!user || user.type !== 'vendor') {
-      return unauthorizedResponse(c, 'Vendor access required');
+    if (!user || user.type !== "vendor") {
+      return unauthorizedResponse(c, "Vendor access required");
     }
 
     const body = await c.req.json();
@@ -873,8 +1014,10 @@ app.put('/profile', async (c) => {
     if (openingTime !== undefined) updateData.openingTime = openingTime;
     if (closingTime !== undefined) updateData.closingTime = closingTime;
     if (minimumOrder !== undefined) updateData.minimumOrder = minimumOrder;
-    if (deliveryRadius !== undefined) updateData.deliveryRadius = deliveryRadius;
-    if (avgDeliveryTime !== undefined) updateData.avgDeliveryTime = avgDeliveryTime;
+    if (deliveryRadius !== undefined)
+      updateData.deliveryRadius = deliveryRadius;
+    if (avgDeliveryTime !== undefined)
+      updateData.avgDeliveryTime = avgDeliveryTime;
     if (isActive !== undefined) updateData.isActive = isActive;
     if (cuisineTypes !== undefined) updateData.cuisineTypes = cuisineTypes;
     if (bankAccount !== undefined) updateData.bankAccount = bankAccount;
@@ -913,14 +1056,14 @@ app.put('/profile', async (c) => {
         where: {
           vendorId: user.userId,
           status: {
-            in: ['PENDING', 'CONFIRMED', 'PREPARING', 'READY_FOR_PICKUP'],
+            in: ["PENDING", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP"],
           },
         },
       }),
       prisma.order.aggregate({
         where: {
           vendorId: user.userId,
-          status: 'DELIVERED',
+          status: "DELIVERED",
           deliveredAt: {
             gte: today,
           },
@@ -931,20 +1074,24 @@ app.put('/profile', async (c) => {
       }),
     ]);
 
-    return successResponse(c, {
-      ...vendor,
-      stats: {
-        todayOrders,
-        activeOrders,
-        todayRevenue: todayRevenue._sum.subtotal || 0,
-        totalProducts: vendor._count.products,
-        totalOrders: vendor._count.orders,
-        totalReviews: vendor._count.reviews,
+    return successResponse(
+      c,
+      {
+        ...vendor,
+        stats: {
+          todayOrders,
+          activeOrders,
+          todayRevenue: todayRevenue._sum.subtotal || 0,
+          totalProducts: vendor._count.products,
+          totalOrders: vendor._count.orders,
+          totalReviews: vendor._count.reviews,
+        },
       },
-    }, 'Profile updated successfully');
+      "Profile updated successfully",
+    );
   } catch (error) {
-    console.error('Update vendor profile error:', error);
-    return errorResponse(c, 'Failed to update profile', 500);
+    console.error("Update vendor profile error:", error);
+    return errorResponse(c, "Failed to update profile", 500);
   }
 });
 

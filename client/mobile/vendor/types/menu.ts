@@ -59,7 +59,7 @@ export interface CreateMenuItemRequest {
   categoryId: string;
   name: string;
   description?: string;
-  images?: string[];
+  images: string[]; // REQUIRED: At least one image
   price: number;
   discountPrice?: number;
   inStock?: boolean;

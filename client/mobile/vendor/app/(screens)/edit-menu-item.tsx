@@ -13,6 +13,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useMenu } from '../../hooks/use-menu';
+import { DishImagePicker } from '../../components/DishImagePicker';
 
 export default function EditMenuItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -27,6 +28,7 @@ export default function EditMenuItemScreen() {
   const [isVeg, setIsVeg] = useState(true);
   const [inStock, setInStock] = useState(true);
   const [prepTime, setPrepTime] = useState('');
+  const [images, setImages] = useState<string[]>([]);
 
   const loadData = useCallback(async () => {
     await fetchCategories();
@@ -41,6 +43,7 @@ export default function EditMenuItemScreen() {
         setIsVeg(item.isVeg);
         setInStock(item.inStock);
         setPrepTime(item.prepTime?.toString() || '');
+        setImages(item.images || []);
       }
     }
   }, [id, fetchCategories, fetchMenuItem]);
@@ -66,6 +69,7 @@ export default function EditMenuItemScreen() {
         isVeg,
         inStock,
         prepTime: prepTime ? parseInt(prepTime) : undefined,
+        images,
       });
       Alert.alert('Success', 'Menu item updated successfully');
       router.back();
@@ -87,6 +91,12 @@ export default function EditMenuItemScreen() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.form}>
+        <DishImagePicker
+          images={images}
+          onChange={setImages}
+          required={false}
+        />
+
         <View style={styles.formGroup}>
           <Text style={styles.label}>Item Name *</Text>
           <TextInput

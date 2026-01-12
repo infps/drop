@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -90,9 +91,18 @@ export default function MenuScreen() {
 
   const renderMenuItem = (item: MenuItem) => {
     const isActionLoading = actionLoading === item.id;
+    const imageUrl = item.images?.[0];
 
     return (
       <View key={item.id} style={styles.menuItem}>
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.itemImage} />
+        ) : (
+          <View style={styles.itemImagePlaceholder}>
+            <MaterialIcons name="restaurant" size={24} color="#ccc" />
+          </View>
+        )}
+
         <View style={styles.itemInfo}>
           <View style={styles.itemHeader}>
             <View style={styles.vegIndicator}>
@@ -103,9 +113,9 @@ export default function MenuScreen() {
                 ]}
               />
             </View>
-            <Text style={styles.itemName}>{item.name}</Text>
+            <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
           </View>
-          <Text style={styles.itemDescription} numberOfLines={2}>
+          <Text style={styles.itemDescription} numberOfLines={1}>
             {item.description || 'No description'}
           </Text>
           <View style={styles.priceRow}>
@@ -382,8 +392,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     marginBottom: 12,
+    gap: 12,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -395,6 +406,20 @@ const styles = StyleSheet.create({
         elevation: 4,
       },
     }),
+  },
+  itemImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  itemImagePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   itemInfo: {
     flex: 1,
