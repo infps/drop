@@ -5,6 +5,7 @@ import { responseHelpers } from '@/middleware/response.middleware'
 import { errorHandler } from '@/middleware/error.middleware'
 import adminRoutes from '@/routes/admin'
 import riderRoutes from '@/routes/rider'
+import userRoutes from '@/routes/user'
 
 const app = new Hono()
 
@@ -17,6 +18,9 @@ app.use('*', responseHelpers)
 app.get('/', (c) => {
   return c.json({ status: 'ok', message: 'DROP API v2' })
 })
+
+// API routes
+app.route('/api/v1', userRoutes)
 
 // Admin routes
 app.route('/admin', adminRoutes)

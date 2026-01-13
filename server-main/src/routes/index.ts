@@ -103,6 +103,7 @@ import adminRoutes from './admin';
 import paymentsRoutes from './payments';
 import walletRoutes from './wallet';
 import uploadRoutes from './upload';
+import vendorsRoutes from './vendors';
 
 const app = new Hono();
 
@@ -112,6 +113,7 @@ app.route('/orders', ordersRoutes);
 app.route('/user', userRoutes);
 app.route('/rider', riderRoutes);
 app.route('/vendor', vendorRoutes);
+app.route('/vendors', vendorsRoutes);
 app.route('/products', productsRoutes);
 app.route('/cart', cartRoutes);
 app.route('/search', searchRoutes);
@@ -133,6 +135,7 @@ app.get('/health', (c) => {
       user: '/user',
       rider: '/rider',
       vendor: '/vendor',
+      vendors: '/vendors',
       products: '/products',
       cart: '/cart',
       search: '/search',

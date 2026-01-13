@@ -59,7 +59,7 @@ app.get('/', async (c) => {
           coverImage: true,
           description: true,
           rating: true,
-          totalOrders: true,
+          totalRatings: true,
           address: true,
           latitude: true,
           longitude: true,
